@@ -2,6 +2,13 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+using namespace std;
+
+static int width = 1080;
+static int height = 720;
+
+static GLFWwindow* window = nullptr;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
@@ -11,32 +18,42 @@ void processInput(GLFWwindow* window) {
         glfwSetWindowShouldClose(window, true);
 }
 
-int main() {
-    if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW\n";
-        return -1;
-    }
+void setupOpenGL() {
+    	if (!glfwInit()) {
+		cerr << "GLFW initialization failed" << endl;
+		return;
+	}
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    
-    // Обязательный флаг для macOS
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        // Required by macOS; harmless on the other supported platforms.
+#ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL macOS", nullptr, nullptr);
+    window = glfwCreateWindow(width, height, "Computer Graphics Fundamentals Final - Server Room (Topic 27)", nullptr, nullptr);
+    
     if (!window) {
         std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
-        return -1;
     }
+    
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD\n";
-        return -1;
     }
+
+	glEnable(GL_DEPTH_TEST);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glViewport(0, 0, width, height);
+}    
+
+void run() {
+    setupOpenGL();
 
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
@@ -47,6 +64,10 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+}
+
+int main() {
+    run();
 
     glfwTerminate();
     return 0;
