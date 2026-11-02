@@ -1,74 +1,97 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include "Lighting.h"
+#include "ServerEffects.h"
 #include <iostream>
+#include <vector>
+#include <string>
 
-using namespace std;
-
-static int width = 1080;
-static int height = 720;
-
-static GLFWwindow* window = nullptr;
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
-
-void setupOpenGL() {
-    	if (!glfwInit()) {
-		cerr << "GLFW initialization failed" << endl;
-		return;
-	}
-
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    // Required by macOS; harmless on the other supported platforms.
+int main(int argc, char** argv) {
+    if (!glfwInit()) return 1;
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,GL_TRUE);
 #endif
-
-    window = glfwCreateWindow(width, height, "Computer Graphics Fundamentals Final - Server Room (Topic 27)", nullptr, nullptr);
-    
-    if (!window) {
-        std::cerr << "Failed to create GLFW window\n";
-        glfwTerminate();
-    }
-
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD\n";
-    }
-
-	glEnable(GL_DEPTH_TEST);
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-	glViewport(0, 0, width, height);
-}    
-
-void run() {
-    setupOpenGL();
-
-    while (!glfwWindowShouldClose(window)) {
-        processInput(window);
-
-        glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-}
-
-int main() {
-    run();
-
-    glfwTerminate();
-    return 0;
+    GLFWwindow* w=glfwCreateWindow(1280,720,"Server Room | A: alarm | L: ceiling | Esc: exit",nullptr,nullptr);
+    if (!w) { glfwTerminate(); return 1; }
+    glfwMakeContextCurrent(w);
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {glfwDestroyWindow(w); glfwTerminate(); return 1;}
+    int result=0;
+    try {
+        Shader lit(SHADER_DIR "/lit.vert",SHADER_DIR "/lit.frag");
+        Shader led(SHADER_DIR "/led.vert",SHADER_DIR "/led.frag");
+        Lighting lighting;
+        std::vector<float> vertices;
+        // Six separate faces preserve hard normals on the demonstration boxes.
+        for(int axis=0;axis<3;axis++) for(int sign: {-1,1}) {
+            const int indices[]={0,1,2,0,2,3};
+            const float corners[][2]={{-0.5f,-0.5f},{0.5f,-0.5f},{0.5f,0.5f},{-0.5f,0.5f}};
+            for(int i:indices) {
+                glm::vec3 p(0),n(0); p[axis]=sign*0.5f; n[axis]=float(sign);
+                p[(axis+1)%3]=corners[i][0]; p[(axis+2)%3]=corners[i][1];
+                for(int j=0;j<3;j++) vertices.push_back(p[j]);
+                for(int j=0;j<3;j++) vertices.push_back(n[j]);
+            }
+        }
+        GLuint vao,vbo;
+        glGenVertexArrays(1,&vao); glGenBuffers(1,&vbo); glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER,vbo);
+        glBufferData(GL_ARRAY_BUFFER,vertices.size()*sizeof(float),vertices.data(),GL_STATIC_DRAW);
+        for(int i=0;i<2;i++){glEnableVertexAttribArray(i);glVertexAttribPointer(i,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(i*3*sizeof(float)));}
+        glEnable(GL_DEPTH_TEST);
+        bool lastA=false,lastL=false;
+        int frames=0;
+        const bool smoke=argc>1 && std::string(argv[1])=="--smoke-test";
+        while(!glfwWindowShouldClose(w)){
+            glfwPollEvents();
+            bool a=glfwGetKey(w,GLFW_KEY_A)==GLFW_PRESS,l=glfwGetKey(w,GLFW_KEY_L)==GLFW_PRESS;
+            if(a&&!lastA)lighting.toggleAlarm();
+            if(l&&!lastL)lighting.toggleCeiling();
+            lastA=a;lastL=l;
+            if(glfwGetKey(w,GLFW_KEY_ESCAPE)==GLFW_PRESS)break;
+            int width,height;glfwGetFramebufferSize(w,&width,&height);
+            if(height==0)continue;
+            glViewport(0,0,width,height);
+            glClearColor(0.008f,0.012f,0.025f,1);glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+            float time=float(glfwGetTime());
+            glm::vec3 eye(7,5,10);
+            auto view=glm::lookAt(eye,glm::vec3(0,1,-1),glm::vec3(0,1,0));
+            auto projection=glm::perspective(glm::radians(48.f),float(width)/height,0.1f,100.f);
+            auto draw=[&](Shader& s,glm::vec3 p,glm::vec3 scale,bool quad=false){
+                s.use();
+                auto model=glm::scale(glm::translate(glm::mat4(1),p),scale);
+                s.setMat4("model",glm::value_ptr(model));s.setMat4("view",glm::value_ptr(view));s.setMat4("projection",glm::value_ptr(projection));
+                glDrawArrays(GL_TRIANGLES,quad?30:0,quad?6:36);
+            };
+            lighting.apply(lit,time);lit.setVec3("eye",eye.x,eye.y,eye.z);
+            lit.setVec3("albedo",0.38f,0.43f,0.5f);
+            draw(lit,{0,-0.1f,-1},{10,0.2f,8});
+            draw(lit,{0,2,-5},{10,4,0.15f});
+            draw(lit,{-5,2,-1},{0.15f,4,8});
+            for(int rack=0;rack<4;rack++){
+                float x=-3.f+rack*2.f;
+                lit.use();lit.setVec3("albedo",0.15f,0.2f,0.26f);
+                draw(lit,{x,1.5f,-2},{1.4f,3,1.5f});
+                for(int row=0;row<8;row++){
+                    lit.use();lit.setVec3("albedo",0.32f,0.36f,0.42f);
+                    draw(lit,{x,0.25f+row*0.35f,-1.22f},{1.25f,0.28f,0.05f});
+                    for(int k=0;k<3;k++){
+                        ServerEffects::apply(led,lighting,time,rack*24+row*3+k);
+                        draw(led,{x-0.45f+k*0.14f,0.25f+row*0.35f,-1.18f},{0.065f,0.065f,0.01f},true);
+                    }
+                }
+            }
+            if(glGetError()!=GL_NO_ERROR)throw std::runtime_error("OpenGL rendering error");
+            glfwSwapBuffers(w);
+            if(smoke && ++frames>=4)break;
+            if(smoke){lighting.toggleAlarm();lighting.toggleCeiling();}
+        }
+        glDeleteBuffers(1,&vbo);glDeleteVertexArrays(1,&vao);
+    }catch(const std::exception& e){std::cerr<<e.what()<<'\n';result=1;}
+    glfwDestroyWindow(w);glfwTerminate();return result;
 }
