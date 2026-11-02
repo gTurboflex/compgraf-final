@@ -28,7 +28,7 @@ void setupOpenGL() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-        // Required by macOS; harmless on the other supported platforms.
+    // Required by macOS; harmless on the other supported platforms.
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
@@ -39,7 +39,7 @@ void setupOpenGL() {
         std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
     }
-    
+
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
