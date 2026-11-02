@@ -31,3 +31,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     "-framework IOKit"
     "-framework CoreVideo"
 )
+find_package(glm CONFIG REQUIRED)
+target_link_libraries(OpenGLApp PRIVATE glm::glm)
+target_compile_definitions(OpenGLApp PRIVATE SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders")
