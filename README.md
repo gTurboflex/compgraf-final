@@ -14,8 +14,8 @@ cmake --build build -j
 Shader paths are resolved from the source directory at configure time. Keep the
 source checkout available when running this development build.
 A toggles alarm; L toggles ceiling lights; Escape exits. Keys toggle once per press.
-`./build/OpenGLApp --smoke-test` renders four frames across all lighting modes
-and reports shader compilation/link or OpenGL errors through a nonzero exit.
+`./build/OpenGLApp --smoke-test` renders for about three seconds, checks the FPS
+display, and reports shader or OpenGL errors through a nonzero exit.
 
 ## Integration
 Lighting.h exposes toggleAlarm(), toggleCeiling(), and apply().
@@ -37,4 +37,26 @@ regenerate them.
 See [Textures and atmosphere](docs/textures-and-atmosphere.md) for the report
 section and the mesh integration contract. AI use: OpenAI Codex generated the
 Member 5 code, surface maps and documentation based on the assigned task.
+
+## Member 4 - UI and FPS
+
+This stage adds an on-screen help panel, scene status, FPS, and frame time.
+Press H to hide the longer help list; FPS stays visible. The panel lists the
+current controls: A for alarm, L for ceiling lights, F for fog, and Esc to exit.
+Camera movement and mouse look are planned for the next stage.
+
+The FPS display updates about twice per second using frames divided by elapsed
+time. A benchmark waits two seconds, then records a 30-second sample at the
+current window size. It disables VSync and saves the actual OpenGL renderer.
+
+```sh
+ctest --test-dir build --output-on-failure
+./build/OpenGLApp --benchmark normal --output normal.json
+./build/OpenGLApp --benchmark alarm --output alarm.json
+./build/OpenGLApp --benchmark ceiling-off --output ceiling-off.json
+```
+
+On Windows, use `.\build\OpenGLApp.exe` with the same options. The original
+development build requires GLFW and GLM, and loads assets from the source
+checkout. See [UI and FPS results](docs/ui-fps.md) for the measured run.
 
