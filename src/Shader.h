@@ -3,6 +3,8 @@
 #include <glad/glad.h>
 #include <string>
 
+using namespace std;
+
 class Shader {
 public:
     Shader(const char* vertexPath, const char* fragmentPath);
@@ -23,7 +25,7 @@ public:
 private:
     unsigned int program;
 
-    std::string readFile(const char* path);
-    unsigned int compileShader(unsigned int type, const std::string& source,
+    string readFile(const char* path);
+    unsigned int compileShader(unsigned int type, const string& source,
                                const char* path);
 };

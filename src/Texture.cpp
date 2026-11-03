@@ -3,17 +3,19 @@
 #include <stdexcept>
 #include <vector>
 
+using namespace std;
+
 Texture::Texture(const char* path) {
-    std::ifstream input(path, std::ios::binary);
-    std::string magic;
+    ifstream input(path, ios::binary);
+    string magic;
     int w, h, maximum;
     if (!(input >> magic >> w >> h >> maximum) || magic != "P5" ||
         w < 1 || h < 1 || w > 8192 || h > 8192 || maximum != 255 ||
         input.get() != '\n')
-        throw std::runtime_error(std::string("Invalid surface map: ") + path);
-    std::vector<unsigned char> pixels(w * h);
+        throw runtime_error(string("Invalid surface map: ") + path);
+    vector<unsigned char> pixels(w * h);
     if (!input.read(reinterpret_cast<char*>(pixels.data()), pixels.size()))
-        throw std::runtime_error(std::string("Incomplete surface map: ") + path);
+        throw runtime_error(string("Incomplete surface map: ") + path);
     glGenTextures(1, &id);
     bind();
     GLint alignment;
