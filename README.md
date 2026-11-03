@@ -1,5 +1,5 @@
 # Topic 27 — Server Room
-Member 3 integration: per-fragment Blinn–Phong, two cold-blue ceiling point lights,
+Lighting integration: per-fragment Blinn–Phong, two cold-blue ceiling point lights,
 independently blinking emissive LED quads, and flashing red alarm mode.
 The primitive room is an integration demonstration for the team's future scene.
 
@@ -24,7 +24,7 @@ LED; do not generate a new ID each frame. Both shader programs use model/view/
 projection uniforms; lit geometry uses location 0 position and location 1 normal.
 See docs/lighting.md for equations and verification.
 Other team requirements (camera controls, full scene hierarchy, FPS
-overlay, report and video) remain outside this Member 3 contribution.
+overlay, report and video) remain outside this lighting contribution.
 ## Member 5 — Textures and atmosphere
 
 The floor, walls, rack frames and perforated front panels each have a repeating
