@@ -1,0 +1,11 @@
+{
+  "mode": "normal",
+  "width": 1280, "height": 720,
+  "renderer": "Intel(R) UHD Graphics 770",
+  "opengl": "3.3.0 - Build 32.0.101.7026",
+  "vsync": false, "warmup_seconds": 2,
+  "frames": 20402, "seconds": 30.001,
+  "mean_fps": 680.043, "p95_frame_ms": 2.005,
+  "max_frame_ms": 6.624,
+  "complete": true
+}
