@@ -28,3 +28,9 @@ Include a close view of the tile seams and perforations and a distant view
 for filtering. Record the actual hardware, resolution and measured FPS in
 the team report. The course report template and Member 2 tray mesh were not
 present in the source branch.
+
+![Tiled floor, painted walls and front panels in normal mode](server-room-materials.png)
+
+Figure 1. Application capture at 1280 × 720, with ceiling lights and cold-air
+fog enabled. CMake build and the four-frame OpenGL smoke test passed in Ubuntu
+under WSL using Xvfb.
