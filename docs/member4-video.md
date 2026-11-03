@@ -56,6 +56,5 @@ Do not read an FPS value from one frame and call it an average. Use the benchmar
 - Check that WASD, mouse-look, resize handling, and the visible FPS counter are shown.
 - Check the team credits and each member's contribution description.
 - Show only implemented features and actual measurements.
-- Keep the required AI-use note in the README and report.
 - End with a clear normal blue view changing to red alarm mode.
 - Watch the exported file from start to end, then include it in the team's final submission.

@@ -15,9 +15,8 @@ also generated for this project. No external asset license is required.
 
 ## Member 4
 
-OpenAI Codex assisted with Camera, Input, UI, PerformanceStats, the hinged-door
-integration, tests, portable builds, and documentation. The HUD font is an
-embedded 5-by-7 bitmap defined in UI.cpp. No downloaded font is used.
+The HUD font is an embedded 5-by-7 bitmap defined in UI.cpp.
+No downloaded font is used.
 
 Bundled dependencies:
 - GLFW 3.4: https://github.com/glfw/glfw, zlib/libpng license;

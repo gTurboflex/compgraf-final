@@ -111,9 +111,3 @@ door frame is a small integration model; it does not replace a future detailed
 rack model. Lighting still uses `Lighting::toggleAlarm()` and `toggleCeiling()`.
 See [lighting](docs/lighting.md), [textures](docs/textures-and-atmosphere.md),
 and [credits](CREDITS.md).
-
-AI use: OpenAI Codex assisted with Member 4 camera/input modules, HUD,
-door integration, tests, build packaging, and documentation. The work changed
-the fixed camera into walking controls, moved alarm to B, and added actual FPS
-measurements. The team must review and understand the code before defense.
-Existing Member 3 and Member 5 AI and asset credits remain in CREDITS.md.

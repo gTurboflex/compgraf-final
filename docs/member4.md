@@ -134,7 +134,3 @@ finished. Other owners still provide the final room model, scene hierarchy,
 lighting/material documentation, and their report sections. The team must
 assemble the final PDF, slides and 3–6 minute video, add the TA, and create v1.0
 on the actual submission date. See `member4-video.md` for the recording sequence.
-
-AI use: OpenAI Codex assisted with the camera and input code, HUD, door
-integration, tests, build setup and this text. The main changes replace the
-fixed camera, move alarm to B, add visible controls, and record actual FPS.
