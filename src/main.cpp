@@ -6,11 +6,42 @@
 #include "Lighting.h"
 #include "Texture.h"
 #include "ServerEffects.h"
+#include "UI.h"
+#include "PerformanceStats.h"
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 #include <string>
 
+void captureFrame(const std::string& path, int width, int height) {
+    std::vector<unsigned char> pixels(static_cast<size_t>(width)*height*3);
+    GLint alignment; glGetIntegerv(GL_PACK_ALIGNMENT,&alignment);
+    glPixelStorei(GL_PACK_ALIGNMENT,1);
+    glReadPixels(0,0,width,height,GL_RGB,GL_UNSIGNED_BYTE,pixels.data());
+    glPixelStorei(GL_PACK_ALIGNMENT,alignment);
+    std::ofstream file(path,std::ios::binary);
+    if (!file) throw std::runtime_error("Cannot write frame capture");
+    file<<"P6\n"<<width<<' '<<height<<"\n255\n";
+    for(int y=height-1;y>=0;--y)
+        file.write(reinterpret_cast<const char*>(pixels.data()+static_cast<size_t>(y)*width*3),width*3);
+}
+
 int main(int argc, char** argv) {
+    bool smoke=false,benchmark=false;
+    std::string mode="normal",output,capture;
+    try {
+        for(int i=1;i<argc;++i) {
+            const std::string arg=argv[i];
+            if(arg=="--smoke-test")smoke=true;
+            else if(arg=="--benchmark" && i+1<argc){benchmark=true;mode=argv[++i];}
+            else if(arg=="--output" && i+1<argc)output=argv[++i];
+            else if(arg=="--capture" && i+1<argc)capture=argv[++i];
+            else throw std::runtime_error("Usage: OpenGLApp [--smoke-test] [--benchmark normal|alarm|ceiling-off] [--output result.json] [--capture frame.ppm]");
+        }
+        if(mode!="normal" && mode!="alarm" && mode!="ceiling-off")throw std::runtime_error("Unknown benchmark mode");
+        if(smoke && benchmark)throw std::runtime_error("Choose smoke test or benchmark");
+    }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
     if (!glfwInit()) return 1;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
@@ -18,15 +49,22 @@ int main(int argc, char** argv) {
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,GL_TRUE);
 #endif
-    GLFWwindow* w=glfwCreateWindow(1280,720,"Server Room | A: alarm | L: ceiling | F: fog | Esc: exit",nullptr,nullptr);
+    GLFWwindow* w=glfwCreateWindow(1280,720,"Server Room | A: alarm | L: ceiling | F: fog | H: help | Esc: exit",nullptr,nullptr);
     if (!w) { glfwTerminate(); return 1; }
     glfwMakeContextCurrent(w);
+    glfwSetInputMode(w,GLFW_STICKY_KEYS,GLFW_TRUE);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {glfwDestroyWindow(w); glfwTerminate(); return 1;}
+    glfwSwapInterval(benchmark || smoke ? 0 : 1);
     int result=0;
     try {
         Shader lit(SHADER_DIR "/lit.vert",SHADER_DIR "/lit.frag");
         Shader led(SHADER_DIR "/led.vert",SHADER_DIR "/led.frag");
+        UI ui(SHADER_DIR "/ui.vert",SHADER_DIR "/ui.frag");
+        PerformanceStats stats;
+        if(benchmark)stats.beginBenchmark(2,30);
         Lighting lighting;
+        if(mode=="alarm")lighting.toggleAlarm();
+        if(mode=="ceiling-off")lighting.toggleCeiling();
         Texture floorTex(TEXTURE_DIR "/floor.pgm"), metalTex(TEXTURE_DIR "/metal.pgm");
         Texture wallTex(TEXTURE_DIR "/wall.pgm"), panelTex(TEXTURE_DIR "/panel.pgm");
         Material floor{floorTex,.50f,.56f,.61f,1.f,28.f,.18f};
@@ -51,9 +89,17 @@ int main(int argc, char** argv) {
         glBufferData(GL_ARRAY_BUFFER,vertices.size()*sizeof(float),vertices.data(),GL_STATIC_DRAW);
         for(int i=0;i<2;i++){glEnableVertexAttribArray(i);glVertexAttribPointer(i,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(i*3*sizeof(float)));}
         glEnable(GL_DEPTH_TEST);
-        bool lastA=false,lastL=false,lastF=false,fog=true;
+        bool lastA=false,lastL=false,lastF=false,fog=true,help=true,captured=false;
+        glfwSetWindowUserPointer(w,&help);
+        glfwSetKeyCallback(w,[](GLFWwindow* window,int key,int,int action,int){
+            if(key==GLFW_KEY_H && action==GLFW_PRESS) {
+                auto& visible=*static_cast<bool*>(glfwGetWindowUserPointer(window));
+                visible=!visible;
+            }
+        });
         int frames=0;
-        const bool smoke=argc>1 && std::string(argv[1])=="--smoke-test";
+        int lastWidth=1280,lastHeight=720;
+        double previous=glfwGetTime(),started=previous;
         while(!glfwWindowShouldClose(w)){
             glfwPollEvents();
             bool a=glfwGetKey(w,GLFW_KEY_A)==GLFW_PRESS,l=glfwGetKey(w,GLFW_KEY_L)==GLFW_PRESS;
@@ -64,13 +110,17 @@ int main(int argc, char** argv) {
             lastF=f;lastA=a;lastL=l;
             if(glfwGetKey(w,GLFW_KEY_ESCAPE)==GLFW_PRESS)break;
             int width,height;glfwGetFramebufferSize(w,&width,&height);
-            if(height==0)continue;
+            if(width<=0 || height<=0){glfwWaitEventsTimeout(.1);previous=glfwGetTime();continue;}
+            const double now=glfwGetTime();
+            stats.addFrame(now-previous);previous=now;
+            lastWidth=width;lastHeight=height;
             glViewport(0,0,width,height);
             glClearColor(0.008f,0.012f,0.025f,1);glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
             float time=float(glfwGetTime());
             glm::vec3 eye(7,5,10);
             auto view=glm::lookAt(eye,glm::vec3(0,1,-1),glm::vec3(0,1,0));
             auto projection=glm::perspective(glm::radians(48.f),float(width)/height,0.1f,100.f);
+            glBindVertexArray(vao);
             auto draw=[&](Shader& s,glm::vec3 p,glm::vec3 scale,bool quad=false){
                 s.use();
                 auto model=glm::scale(glm::translate(glm::mat4(1),p),scale);
@@ -101,10 +151,35 @@ int main(int argc, char** argv) {
                     }
                 }
             }
+            UIState hud;
+            hud.fps=stats.fps();hud.frameMs=stats.frameMs();hud.helpVisible=help;
+            hud.alarm=lighting.alarm;hud.ceiling=lighting.ceilingEnabled;hud.fog=fog;
+            ui.draw(width,height,hud);
+            if(!capture.empty() && !captured && now-started>=(benchmark?1.0:2.5)){captureFrame(capture,width,height);captured=true;}
             if(glGetError()!=GL_NO_ERROR)throw std::runtime_error("OpenGL rendering error");
             glfwSwapBuffers(w);
-            if(smoke && ++frames>=4)break;
-            if(smoke){fog=!fog;lighting.toggleAlarm();lighting.toggleCeiling();}
+            ++frames;
+            if(smoke && now-started>=2.6) {
+                if(stats.fps()<=0)throw std::runtime_error("FPS display was not updated");
+                break;
+            }
+            if(smoke && frames<=4){fog=!fog;lighting.toggleAlarm();lighting.toggleCeiling();help=!help;}
+            if(benchmark && stats.benchmarkDone())break;
+        }
+        glfwSetKeyCallback(w,nullptr);glfwSetWindowUserPointer(w,nullptr);
+        if(benchmark) {
+            const auto data=stats.benchmark();
+            std::ofstream file;
+            if(!output.empty()){file.open(output);if(!file)throw std::runtime_error("Cannot write benchmark result");}
+            std::ostream& out=output.empty()?std::cout:file;
+            out<<std::fixed<<std::setprecision(3)<<"{\n  \"mode\": "<<std::quoted(mode)
+               <<",\n  \"width\": "<<lastWidth<<", \"height\": "<<lastHeight
+               <<",\n  \"renderer\": "<<std::quoted(reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
+               <<",\n  \"opengl\": "<<std::quoted(reinterpret_cast<const char*>(glGetString(GL_VERSION)))
+               <<",\n  \"vsync\": false, \"warmup_seconds\": 2,\n  \"frames\": "<<data.frames
+               <<", \"seconds\": "<<data.seconds<<",\n  \"mean_fps\": "<<data.meanFps
+               <<", \"p95_frame_ms\": "<<data.p95FrameMs<<",\n  \"max_frame_ms\": "<<data.maxFrameMs
+               <<",\n  \"complete\": "<<(stats.benchmarkDone()?"true":"false")<<"\n}\n";
         }
         glDeleteBuffers(1,&vbo);glDeleteVertexArrays(1,&vao);
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';result=1;}
