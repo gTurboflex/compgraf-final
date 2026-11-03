@@ -24,13 +24,15 @@ file(GLOB_RECURSE SOURCES
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Линковка GLFW и системных фреймворков macOS
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+if(APPLE)
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    glfw
     "-framework OpenGL"
     "-framework Cocoa"
     "-framework IOKit"
     "-framework CoreVideo"
 )
+endif()
 find_package(glm CONFIG REQUIRED)
 target_link_libraries(OpenGLApp PRIVATE glm::glm)
-target_compile_definitions(OpenGLApp PRIVATE SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+target_compile_definitions(OpenGLApp PRIVATE TEXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/textures" SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders")

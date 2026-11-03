@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "Lighting.h"
+#include "Texture.h"
 #include "ServerEffects.h"
 #include <iostream>
 #include <vector>
@@ -17,7 +18,7 @@ int main(int argc, char** argv) {
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT,GL_TRUE);
 #endif
-    GLFWwindow* w=glfwCreateWindow(1280,720,"Server Room | A: alarm | L: ceiling | Esc: exit",nullptr,nullptr);
+    GLFWwindow* w=glfwCreateWindow(1280,720,"Server Room | A: alarm | L: ceiling | F: fog | Esc: exit",nullptr,nullptr);
     if (!w) { glfwTerminate(); return 1; }
     glfwMakeContextCurrent(w);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {glfwDestroyWindow(w); glfwTerminate(); return 1;}
@@ -26,6 +27,12 @@ int main(int argc, char** argv) {
         Shader lit(SHADER_DIR "/lit.vert",SHADER_DIR "/lit.frag");
         Shader led(SHADER_DIR "/led.vert",SHADER_DIR "/led.frag");
         Lighting lighting;
+        Texture floorTex(TEXTURE_DIR "/floor.pgm"), metalTex(TEXTURE_DIR "/metal.pgm");
+        Texture wallTex(TEXTURE_DIR "/wall.pgm"), panelTex(TEXTURE_DIR "/panel.pgm");
+        Material floor{floorTex,.50f,.56f,.61f,1.f,28.f,.18f};
+        Material wall{wallTex,.62f,.68f,.70f,.6f,12.f,.08f};
+        Material metal{metalTex,.25f,.32f,.38f,1.f,80.f,.52f};
+        Material panel{panelTex,.42f,.48f,.53f,2.f,44.f,.32f};
         std::vector<float> vertices;
         // Six separate faces preserve hard normals on the demonstration boxes.
         for(int axis=0;axis<3;axis++) for(int sign: {-1,1}) {
@@ -44,7 +51,7 @@ int main(int argc, char** argv) {
         glBufferData(GL_ARRAY_BUFFER,vertices.size()*sizeof(float),vertices.data(),GL_STATIC_DRAW);
         for(int i=0;i<2;i++){glEnableVertexAttribArray(i);glVertexAttribPointer(i,3,GL_FLOAT,GL_FALSE,6*sizeof(float),(void*)(i*3*sizeof(float)));}
         glEnable(GL_DEPTH_TEST);
-        bool lastA=false,lastL=false;
+        bool lastA=false,lastL=false,lastF=false,fog=true;
         int frames=0;
         const bool smoke=argc>1 && std::string(argv[1])=="--smoke-test";
         while(!glfwWindowShouldClose(w)){
@@ -52,7 +59,9 @@ int main(int argc, char** argv) {
             bool a=glfwGetKey(w,GLFW_KEY_A)==GLFW_PRESS,l=glfwGetKey(w,GLFW_KEY_L)==GLFW_PRESS;
             if(a&&!lastA)lighting.toggleAlarm();
             if(l&&!lastL)lighting.toggleCeiling();
-            lastA=a;lastL=l;
+            bool f=glfwGetKey(w,GLFW_KEY_F)==GLFW_PRESS;
+            if(f&&!lastF)fog=!fog;
+            lastF=f;lastA=a;lastL=l;
             if(glfwGetKey(w,GLFW_KEY_ESCAPE)==GLFW_PRESS)break;
             int width,height;glfwGetFramebufferSize(w,&width,&height);
             if(height==0)continue;
@@ -69,16 +78,22 @@ int main(int argc, char** argv) {
                 glDrawArrays(GL_TRIANGLES,quad?30:0,quad?6:36);
             };
             lighting.apply(lit,time);lit.setVec3("eye",eye.x,eye.y,eye.z);
-            lit.setVec3("albedo",0.38f,0.43f,0.5f);
+            for(Shader* shader : {&lit,&led}) {
+                shader->use();
+                shader->setVec3("eye",eye.x,eye.y,eye.z);
+                shader->setInt("fogEnabled",fog);
+            }
+            floor.apply(lit);
             draw(lit,{0,-0.1f,-1},{10,0.2f,8});
+            wall.apply(lit);
             draw(lit,{0,2,-5},{10,4,0.15f});
             draw(lit,{-5,2,-1},{0.15f,4,8});
             for(int rack=0;rack<4;rack++){
                 float x=-3.f+rack*2.f;
-                lit.use();lit.setVec3("albedo",0.15f,0.2f,0.26f);
+                metal.apply(lit);
                 draw(lit,{x,1.5f,-2},{1.4f,3,1.5f});
                 for(int row=0;row<8;row++){
-                    lit.use();lit.setVec3("albedo",0.32f,0.36f,0.42f);
+                    panel.apply(lit);
                     draw(lit,{x,0.25f+row*0.35f,-1.22f},{1.25f,0.28f,0.05f});
                     for(int k=0;k<3;k++){
                         ServerEffects::apply(led,lighting,time,rack*24+row*3+k);
@@ -89,7 +104,7 @@ int main(int argc, char** argv) {
             if(glGetError()!=GL_NO_ERROR)throw std::runtime_error("OpenGL rendering error");
             glfwSwapBuffers(w);
             if(smoke && ++frames>=4)break;
-            if(smoke){lighting.toggleAlarm();lighting.toggleCeiling();}
+            if(smoke){fog=!fog;lighting.toggleAlarm();lighting.toggleCeiling();}
         }
         glDeleteBuffers(1,&vbo);glDeleteVertexArrays(1,&vao);
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';result=1;}
