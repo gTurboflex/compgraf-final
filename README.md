@@ -95,6 +95,10 @@ p95 frame time, and the slowest frame. Minimized periods are skipped. A run
 closed early is marked incomplete. `--capture frame.ppm` saves a real OpenGL
 frame after the FPS display has updated; no pointer is drawn into that file.
 
+The smoke test opens a real window for about four seconds. Keep it focused
+and do not press keys during the test. It checks walking through the installed
+callbacks, nearby-door opening and closing, scene toggles, FPS, and GL errors.
+
 See [Member 4 implementation and results](docs/member4.md),
 [the Russian code explanation](docs/member4-explanation-ru.md), and
 [the video plan](docs/member4-video.md). Raw measurements are in `docs/evidence`.

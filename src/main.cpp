@@ -11,10 +11,12 @@
 #include "PerformanceStats.h"
 #include "RackDoors.h"
 #include "../tests/input_smoke.h"
+#include "../tests/scene_smoke.h"
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -78,6 +80,8 @@ int main(int argc, char** argv) {
         Camera camera;
         Input input(w,camera);
         if(config.smoke)runInputChecks(w,input,camera);
+        std::optional<SceneSmoke> sceneSmoke;
+        if(config.smoke)sceneSmoke.emplace(w);
         Lighting lighting;
         RackDoors doors;
         PerformanceStats stats;
@@ -108,13 +112,14 @@ int main(int argc, char** argv) {
         for(int i=0;i<2;i++){glEnableVertexAttribArray(i);glVertexAttribPointer(i,3,GL_FLOAT,GL_FALSE,6*sizeof(float),reinterpret_cast<void*>(i*3*sizeof(float)));}
         glEnable(GL_DEPTH_TEST);
         bool fog=true,help=true,capturedFrame=false;
-        int frames=0,lastWidth=1280,lastHeight=720;
+        int lastWidth=1280,lastHeight=720;
         double previous=glfwGetTime(),started=previous;
         while(!glfwWindowShouldClose(w)) {
             glfwPollEvents();
             int width,height;glfwGetFramebufferSize(w,&width,&height);
             if(width<=0 || height<=0){glfwWaitEventsTimeout(.1);previous=glfwGetTime();continue;}
             double now=glfwGetTime(),dt=now-previous;previous=now;
+            if(sceneSmoke)sceneSmoke->advance(now-started,camera,doors);
             auto actions=input.update(static_cast<float>(dt));
             if(actions.alarm)lighting.toggleAlarm();
             if(actions.ceiling)lighting.toggleCeiling();
@@ -123,6 +128,7 @@ int main(int argc, char** argv) {
             if(actions.door)doors.toggle(doors.nearby(camera.position()));
             doors.update(static_cast<float>(dt));
             stats.addFrame(dt);
+            if(sceneSmoke)sceneSmoke->verify(doors,lighting,help,fog,stats.fps());
             glViewport(0,0,width,height);lastWidth=width;lastHeight=height;
             glClearColor(.008f,.012f,.025f,1);glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
             const float time=static_cast<float>(now);
@@ -164,17 +170,17 @@ int main(int argc, char** argv) {
             hud.alarm=lighting.alarm;hud.ceiling=lighting.ceilingEnabled;hud.fog=fog;
             hud.doorPrompt=nearby<0?"E: WALK CLOSER TO A RACK":"E: "+std::string(doors.isOpen(nearby)?"CLOSE":"OPEN")+" RACK "+std::to_string(nearby+1)+" DOOR";
             ui.draw(width,height,hud);
-            if(!config.capture.empty() && !capturedFrame && (config.smoke?frames==2:now-started>=2.5)) {
+            if(!config.capture.empty() && !capturedFrame && (config.smoke?sceneSmoke->done():now-started>=2.5)) {
                 captureFrame(config.capture,width,height);capturedFrame=true;
             }
             if((config.smoke || config.benchmark) && glGetError()!=GL_NO_ERROR)throw std::runtime_error("OpenGL rendering error");
-            glfwSwapBuffers(w);++frames;
-            if(config.smoke){
-                if(frames>=8)break;
-                fog=!fog;lighting.toggleAlarm();lighting.toggleCeiling();
-                doors.toggle(frames%RackDoors::count);camera.move(1,0,.05f);
-            }
+            glfwSwapBuffers(w);
+            if(sceneSmoke && sceneSmoke->done())break;
             if(config.benchmark && stats.benchmarkDone())break;
+        }
+        if(sceneSmoke) {
+            if(!sceneSmoke->done())throw std::runtime_error("Scene smoke ended before integration checks completed");
+            std::cout<<"PASS: callbacks, held walking, distant/near door, open/close animation, alarm, ceiling, help, fog and FPS\n";
         }
         if(config.benchmark){
             auto b=stats.benchmark();

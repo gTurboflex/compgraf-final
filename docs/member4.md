@@ -95,6 +95,11 @@ Figure 2. Red alarm mode using the existing lighting and LED shaders.
 
 Figure 3. Ceiling lights off; emissive LEDs remain visible.
 
+![Nearby door after opening](evidence/door-open.png)
+
+Figure 4. The smoke run walked toward rack 2 and opened its door. The prompt
+now offers to close it. This is a close view with alarm mode on.
+
 ## Verification
 
 Local camera tests passed for equal walking distance at 30 and 144 updates per
@@ -108,10 +113,19 @@ The same run invoked the installed input callbacks and checked held W movement,
 press/repeat/release actions, focus-loss cleanup, first-mouse handling, rotation
 after clicking while captured, and reset. These are automated callback checks,
 not a claim that a human walked the whole room during this run.
+The longer scene smoke run passed through the normal update and render loop.
+It held W, rejected E while far away, reached a rack, and opened, closed, and
+opened that door again. It checked the final hinge angles and that other doors
+stayed closed. B, L, H, and F changed their scene states, and FPS was measured.
+The run finished with exit code 0 and no reported OpenGL error.
+
 The visible B and L toggles changed the rendered lighting. H removed the help
-list while FPS stayed visible. Escape ended the application with exit code 0.
-The GitHub workflow separately builds and runs the three calculation test
-programs on Windows and macOS; its status is available on the pull request.
+list while FPS stayed visible. Mouse input changed the view; R restored it.
+Maximizing the window kept the scene proportions and HUD readable. Escape
+ended the application with exit code 0.
+The GitHub workflow also passed all three calculation tests on both Windows
+and macOS. Build and packaging passed on both platforms. The current checks
+are linked from [pull request 3](https://github.com/gTurboflex/compgraf-final/pull/3).
 
 ## Scope and handoff
 
