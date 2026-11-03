@@ -14,8 +14,8 @@ cmake --build build -j
 Shader paths are resolved from the source directory at configure time. Keep the
 source checkout available when running this development build.
 A toggles alarm; L toggles ceiling lights; Escape exits. Keys toggle once per press.
-`./build/OpenGLApp --smoke-test` renders four frames across all lighting modes
-and reports shader compilation/link or OpenGL errors through a nonzero exit.
+`./build/OpenGLApp --smoke-test` renders for about 1.2 seconds and checks that
+the FPS counter updates. Shader and OpenGL errors cause a nonzero exit.
 
 ## Integration
 Lighting.h exposes toggleAlarm(), toggleCeiling(), and apply().
@@ -37,4 +37,18 @@ regenerate them.
 See [Textures and atmosphere](docs/textures-and-atmosphere.md) for the report
 section and the mesh integration contract. AI use: OpenAI Codex generated the
 Member 5 code, surface maps and documentation based on the assigned task.
+
+## Member 4 - FPS calculation
+
+This first stage adds a small FPS counter. The window title shows FPS and
+average frame time, updated about twice per second. FPS is the number of frames
+divided by their elapsed time. Zero, negative, and non-finite time values are
+ignored. Rendering and timing pause while the window is minimized.
+
+The in-scene help panel, benchmark files, walking camera, mouse look, and door
+controls are for later stages. Current controls remain A, L, F, and Esc.
+
+Build as above, then run `ctest --test-dir build --output-on-failure` to check
+the FPS calculation. The tests cover different frame rates, variable frame
+times, invalid inputs, and consecutive measurement intervals.
 

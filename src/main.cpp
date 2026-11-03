@@ -6,7 +6,10 @@
 #include "Lighting.h"
 #include "Texture.h"
 #include "ServerEffects.h"
+#include "PerformanceStats.h"
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <string>
 
@@ -23,11 +26,13 @@ int main(int argc, char** argv) {
     GLFWwindow* w=glfwCreateWindow(1280,720,"Server Room | A: alarm | L: ceiling | F: fog | Esc: exit",nullptr,nullptr);
     if (!w) { glfwTerminate(); return 1; }
     glfwMakeContextCurrent(w);
+    glfwSetInputMode(w,GLFW_STICKY_KEYS,GLFW_TRUE);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {glfwDestroyWindow(w); glfwTerminate(); return 1;}
     int result=0;
     try {
         Shader lit(SHADER_DIR "/lit.vert",SHADER_DIR "/lit.frag");
         Shader led(SHADER_DIR "/led.vert",SHADER_DIR "/led.frag");
+        PerformanceStats stats;
         Lighting lighting;
         Texture floorTex(TEXTURE_DIR "/floor.pgm"), metalTex(TEXTURE_DIR "/metal.pgm");
         Texture wallTex(TEXTURE_DIR "/wall.pgm"), panelTex(TEXTURE_DIR "/panel.pgm");
@@ -56,6 +61,7 @@ int main(int argc, char** argv) {
         bool lastA=false,lastL=false,lastF=false,fog=true;
         int frames=0;
         const bool smoke=argc>1 && string(argv[1])=="--smoke-test";
+        double previous=glfwGetTime(),started=previous;
         while(!glfwWindowShouldClose(w)){
             glfwPollEvents();
             bool a=glfwGetKey(w,GLFW_KEY_A)==GLFW_PRESS,l=glfwGetKey(w,GLFW_KEY_L)==GLFW_PRESS;
@@ -66,7 +72,7 @@ int main(int argc, char** argv) {
             lastF=f;lastA=a;lastL=l;
             if(glfwGetKey(w,GLFW_KEY_ESCAPE)==GLFW_PRESS)break;
             int width,height;glfwGetFramebufferSize(w,&width,&height);
-            if(height==0)continue;
+            if(width<=0 || height<=0){glfwWaitEventsTimeout(.1);previous=glfwGetTime();continue;}
             glViewport(0,0,width,height);
             glClearColor(0.008f,0.012f,0.025f,1);glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
             float time=float(glfwGetTime());
@@ -105,8 +111,21 @@ int main(int argc, char** argv) {
             }
             if(glGetError()!=GL_NO_ERROR)throw runtime_error("OpenGL rendering error");
             glfwSwapBuffers(w);
-            if(smoke && ++frames>=4)break;
-            if(smoke){fog=!fog;lighting.toggleAlarm();lighting.toggleCeiling();}
+            const double now=glfwGetTime();
+            if(stats.addFrame(now-previous)) {
+                ostringstream title;
+                title<<"Server Room | FPS "<<fixed<<setprecision(1)<<stats.fps()
+                     <<" | "<<setprecision(2)<<stats.frameMs()<<" ms"
+                     <<" | A: alarm | L: ceiling | F: fog | Esc: exit";
+                glfwSetWindowTitle(w,title.str().c_str());
+            }
+            previous=now;
+            ++frames;
+            if(smoke && now-started>=1.2) {
+                if(stats.fps()<=0)throw runtime_error("FPS counter did not update");
+                break;
+            }
+            if(smoke && frames<=4){fog=!fog;lighting.toggleAlarm();lighting.toggleCeiling();}
         }
         glDeleteBuffers(1,&vbo);glDeleteVertexArrays(1,&vao);
     }catch(const exception& e){cerr<<e.what()<<'\n';result=1;}
