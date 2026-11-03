@@ -1,38 +1,78 @@
 cmake_minimum_required(VERSION 3.16)
-project(OpenGLApp LANGUAGES C CXX)
+project(OpenGLApp VERSION 0.4.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${config} "${CMAKE_BINARY_DIR}/bin")
+endforeach()
 
-# Для корректной сборки под Apple Silicon (arm64) / Intel
-if(APPLE)
-    set(CMAKE_MACOSX_RPATH 1)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static dependencies" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/glfw)
+
+add_library(glm INTERFACE)
+add_library(glm::glm ALIAS glm)
+target_include_directories(glm SYSTEM INTERFACE external/glm)
+
+add_library(glad STATIC external/glad/src/glad.c)
+target_include_directories(glad PUBLIC external/glad/include)
+find_package(OpenGL REQUIRED)
+
+if(MINGW)
+    add_link_options(-static -static-libgcc -static-libstdc++)
 endif()
 
-# Подключаем GLAD из локальной папки
-include_directories(${CMAKE_SOURCE_DIR}/external/glad/include)
-
-# Ищем системный GLFW (установленный через Homebrew)
-find_package(glfw3 REQUIRED)
-
-# Исходные файлы
-file(GLOB_RECURSE SOURCES 
-    "src/*.cpp"
-    "external/glad/src/glad.c"
-)
-
-add_executable(${PROJECT_NAME} ${SOURCES})
-
-# Линковка GLFW и системных фреймворков macOS
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
-if(APPLE)
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    "-framework OpenGL"
-    "-framework Cocoa"
-    "-framework IOKit"
-    "-framework CoreVideo"
-)
+file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS src/*.cpp)
+add_executable(OpenGLApp ${PROJECT_SOURCES})
+target_link_libraries(OpenGLApp PRIVATE glfw glad glm::glm OpenGL::GL)
+target_compile_definitions(OpenGLApp PRIVATE GLFW_INCLUDE_NONE)
+if(MSVC)
+    target_compile_options(OpenGLApp PRIVATE /W4)
+else()
+    target_compile_options(OpenGLApp PRIVATE -Wall -Wextra -Wpedantic)
 endif()
-find_package(glm CONFIG REQUIRED)
-target_link_libraries(OpenGLApp PRIVATE glm::glm)
-target_compile_definitions(OpenGLApp PRIVATE TEXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/textures" SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+
+add_custom_command(TARGET OpenGLApp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders" "$<TARGET_FILE_DIR:OpenGLApp>/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:OpenGLApp>/assets")
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(control_tests tests/control_tests.cpp src/Camera.cpp)
+    add_executable(performance_tests tests/performance_tests.cpp src/PerformanceStats.cpp)
+    add_executable(door_tests tests/door_tests.cpp)
+    foreach(test_target control_tests performance_tests door_tests)
+        target_include_directories(${test_target} PRIVATE src)
+        target_link_libraries(${test_target} PRIVATE glm::glm)
+        if(MSVC)
+            target_compile_options(${test_target} PRIVATE /W4 /UNDEBUG)
+        else()
+            target_compile_options(${test_target} PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+        endif()
+        add_test(NAME ${test_target} COMMAND ${test_target})
+    endforeach()
+endif()
+
+install(TARGETS OpenGLApp RUNTIME DESTINATION .)
+install(DIRECTORY shaders assets DESTINATION .)
+install(FILES README.md CREDITS.md DESTINATION .)
+install(DIRECTORY docs DESTINATION .)
+install(FILES external/glfw/LICENSE.md DESTINATION licenses RENAME GLFW-LICENSE.md)
+install(FILES external/glm/copying.txt DESTINATION licenses RENAME GLM-LICENSE.txt)
+
+set(CPACK_GENERATOR ZIP)
+set(CPACK_PACKAGE_NAME ServerRoom-Member4)
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_FILE_NAME "ServerRoom-Member4-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
+include(CPack)

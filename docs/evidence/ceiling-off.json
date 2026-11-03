@@ -1,0 +1,11 @@
+{
+  "mode": "ceiling-off",
+  "width": 1280, "height": 720,
+  "renderer": "Intel(R) UHD Graphics 770",
+  "opengl": "3.3.0 - Build 32.0.101.7026",
+  "vsync": false, "warmup_seconds": 2,
+  "frames": 8677, "seconds": 30.000,
+  "mean_fps": 289.233, "p95_frame_ms": 4.609,
+  "max_frame_ms": 152.510,
+  "complete": true
+}

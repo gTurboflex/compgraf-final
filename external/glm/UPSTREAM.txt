@@ -1,0 +1,4 @@
+GLM 1.0.1
+https://github.com/g-truc/glm/tree/1.0.1
+Commit: 0af55ccecd98d4e5a8d1fad7de25ba429d60e863
+Unmodified glm header directory. See copying.txt for the license.

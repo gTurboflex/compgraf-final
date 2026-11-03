@@ -1,1 +1,8 @@
-build/
+build*/
+.tools/
+_CPack_Packages/
+*.user
+*.exe
+*.dll
+*.pdb
+*.dSYM/

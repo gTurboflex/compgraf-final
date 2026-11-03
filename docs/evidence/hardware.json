@@ -1,0 +1,9 @@
+{
+  "ramGiB": 15.7,
+  "os": "Майкрософт Windows 11 Pro",
+  "cpu": "12th Gen Intel(R) Core(TM) i5-12450HX",
+  "gpu": [
+    "Intel(R) UHD Graphics",
+    "NVIDIA GeForce RTX 4050 Laptop GPU"
+  ]
+}

@@ -1,40 +1,115 @@
-# Topic 27 — Server Room
-Member 3 integration: per-fragment Blinn–Phong, two cold-blue ceiling point lights,
-independently blinking emissive LED quads, and flashing red alarm mode.
-The primitive room is an integration demonstration for the team's future scene.
+# Topic 27: Server Room
 
-## Build (macOS)
-Install Xcode command line tools and dependencies:
-```sh
-brew install cmake glfw glm
-cmake -S . -B build
-cmake --build build -j
-./build/OpenGLApp
+A C++17 and OpenGL 3.3 room with server racks, blinking LEDs, cold blue lights,
+and a red alarm mode. Member 3 provides lighting and LED effects. Member 5
+provides surface maps and fog. Member 4 adds walking, mouse look, door controls,
+an on-screen help panel, and FPS measurements.
+
+The current primitive room is the team's integration scene. The full team
+report, slides, final video, and final submission tag are separate deliverables.
+
+## Run a packaged build
+
+Extract the whole preview ZIP, then open `OpenGLApp.exe` on Windows. Keep the
+`shaders` and `assets` folders beside it. The package includes the runtime files;
+the source checkout is not needed to run it. An OpenGL 3.3 driver is required.
+
+## Build
+
+GLFW 3.4 and GLM 1.0.1 are included in `external`, with their licenses. CMake
+does not download packages during configuration. You need a C++17 compiler,
+CMake 3.16 or newer, and Ninja when using MSYS2.
+
+Windows, from PowerShell in the project folder:
+
+```powershell
+.\scripts\build-windows.ps1 -Package
+.\build\bin\OpenGLApp.exe
 ```
-Shader paths are resolved from the source directory at configure time. Keep the
-source checkout available when running this development build.
-A toggles alarm; L toggles ceiling lights; Escape exits. Keys toggle once per press.
-`./build/OpenGLApp --smoke-test` renders four frames across all lighting modes
-and reports shader compilation/link or OpenGL errors through a nonzero exit.
 
-## Integration
-Lighting.h exposes toggleAlarm(), toggleCeiling(), and apply().
-ServerEffects.h uploads time and a stable unique LED ID. Assign one ID to each
-LED; do not generate a new ID each frame. Both shader programs use model/view/
-projection uniforms; lit geometry uses location 0 position and location 1 normal.
-See docs/lighting.md for equations and verification.
-Other team requirements (camera controls, full scene hierarchy, FPS
-overlay, report and video) remain outside this Member 3 contribution.
-## Member 5 — Textures and atmosphere
+The script finds MSYS2 UCRT64 in common folders. Use `-ToolchainBin` for another
+location, or run it from a Visual Studio developer terminal without MSYS2.
 
-The floor, walls, rack frames and perforated front panels each have a repeating
-surface map and independent Blinn–Phong parameters. Press F to toggle cold-air
-fog. Compare the floor near and far from the camera, then switch A to see the
-fog and LEDs respond to alarm mode. Texture paths, like shader paths, are set
-at configure time. The four surface maps are bundled; Python is only needed to
-regenerate them.
+macOS, with Xcode command line tools and CMake:
 
-See [Textures and atmosphere](docs/textures-and-atmosphere.md) for the report
-section and the mesh integration contract. AI use: OpenAI Codex generated the
-Member 5 code, surface maps and documentation based on the assigned task.
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+./build/bin/OpenGLApp
+```
 
+Windows and macOS builds are also defined in `.github/workflows/build.yml`.
+Each successful job uploads a preview ZIP. The release is a Member 4 preview,
+not the team's final `v1.0` submission.
+
+## Controls
+
+Click the scene to capture the mouse. The letter controls use GLFW key events,
+so the normal English and Russian keyboard layouts use the same key positions.
+
+| Input | Action |
+|---|---|
+| W / A / S / D | Walk forward / left / back / right |
+| Mouse | Look around |
+| Tab | Release or capture the mouse |
+| Left click | Capture the mouse |
+| B | Toggle the red overheat alarm |
+| E | Open or close the nearest rack door within 2.3 units |
+| L | Toggle ceiling lights |
+| F | Toggle the existing cold-air fog |
+| H | Show or hide help; FPS stays visible |
+| R | Reset the camera |
+| Escape | Exit |
+
+Alarm moved from A to B because A is now part of WASD. Toggling happens once
+per press. Movement stays on the floor plane. Collision is not implemented;
+the camera can pass through objects. When focus is lost, walking stops and the
+mouse is released. A bottom prompt shows whether a door is close enough.
+
+## Member 4 files
+
+- `Camera`: position, yaw, pitch, movement, view and projection matrices.
+- `Input`: key events, mouse look, capture and focus handling.
+- `RackDoors.h`: nearby-door selection and a simple hinged door in this scene.
+- `UI`: help, mode labels, door prompt, FPS and frame time.
+- `PerformanceStats`: rolling display and timed benchmark samples.
+
+`main.cpp` connects these modules to the existing lighting and materials.
+It sends the same camera matrices to lit surfaces and LEDs. The viewport and
+projection use the current framebuffer size, including after a resize.
+
+## Tests and measurements
+
+```powershell
+ctest --test-dir build -C Release --output-on-failure
+.\build\bin\OpenGLApp.exe --smoke-test
+.\build\bin\OpenGLApp.exe --benchmark normal --seconds 30 --output normal.json
+.\build\bin\OpenGLApp.exe --benchmark alarm --seconds 30 --output alarm.json
+.\build\bin\OpenGLApp.exe --benchmark ceiling-off --seconds 30 --output ceiling-off.json
+```
+
+Benchmark mode disables VSync, waits two seconds, then measures the requested
+sample time. It records actual framebuffer dimensions, GPU renderer, mean FPS,
+p95 frame time, and the slowest frame. Minimized periods are skipped. A run
+closed early is marked incomplete. `--capture frame.ppm` saves a real OpenGL
+frame after the FPS display has updated; no pointer is drawn into that file.
+
+See [Member 4 implementation and results](docs/member4.md),
+[the Russian code explanation](docs/member4-explanation-ru.md), and
+[the video plan](docs/member4-video.md). Raw measurements are in `docs/evidence`.
+
+## Team integration and credits
+
+Keep one owner for the GLFW user pointer and callbacks: the `Input` object.
+Connect future scene doors through the same nearest-door action. The current
+door frame is a small integration model; it does not replace a future detailed
+rack model. Lighting still uses `Lighting::toggleAlarm()` and `toggleCeiling()`.
+See [lighting](docs/lighting.md), [textures](docs/textures-and-atmosphere.md),
+and [credits](CREDITS.md).
+
+AI use: OpenAI Codex assisted with Member 4 camera/input modules, HUD,
+door integration, tests, build packaging, and documentation. The work changed
+the fixed camera into walking controls, moved alarm to B, and added actual FPS
+measurements. The team must review and understand the code before defense.
+Existing Member 3 and Member 5 AI and asset credits remain in CREDITS.md.

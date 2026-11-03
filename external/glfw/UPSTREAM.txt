@@ -1,0 +1,5 @@
+GLFW 3.4
+https://github.com/glfw/glfw/tree/3.4
+Commit: 7b6aead9fb88b3623e3b3725ebb42670cbe4c579
+Unmodified source subset: CMake, src, include, deps/mingw, deps/wayland.
+Examples, tests and documentation are omitted. See LICENSE.md.
