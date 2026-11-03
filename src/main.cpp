@@ -9,6 +9,9 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include "models/Rack.h"
+
+using namespace std;
 
 int main(int argc, char** argv) {
     if (!glfwInit()) return 1;
@@ -33,8 +36,7 @@ int main(int argc, char** argv) {
         Material wall{wallTex,.62f,.68f,.70f,.6f,12.f,.08f};
         Material metal{metalTex,.25f,.32f,.38f,1.f,80.f,.52f};
         Material panel{panelTex,.42f,.48f,.53f,2.f,44.f,.32f};
-        std::vector<float> vertices;
-        // Six separate faces preserve hard normals on the demonstration boxes.
+        vector<float> vertices;
         for(int axis=0;axis<3;axis++) for(int sign: {-1,1}) {
             const int indices[]={0,1,2,0,2,3};
             const float corners[][2]={{-0.5f,-0.5f},{0.5f,-0.5f},{0.5f,0.5f},{-0.5f,0.5f}};
@@ -53,7 +55,7 @@ int main(int argc, char** argv) {
         glEnable(GL_DEPTH_TEST);
         bool lastA=false,lastL=false,lastF=false,fog=true;
         int frames=0;
-        const bool smoke=argc>1 && std::string(argv[1])=="--smoke-test";
+        const bool smoke=argc>1 && string(argv[1])=="--smoke-test";
         while(!glfwWindowShouldClose(w)){
             glfwPollEvents();
             bool a=glfwGetKey(w,GLFW_KEY_A)==GLFW_PRESS,l=glfwGetKey(w,GLFW_KEY_L)==GLFW_PRESS;
@@ -101,12 +103,12 @@ int main(int argc, char** argv) {
                     }
                 }
             }
-            if(glGetError()!=GL_NO_ERROR)throw std::runtime_error("OpenGL rendering error");
+            if(glGetError()!=GL_NO_ERROR)throw runtime_error("OpenGL rendering error");
             glfwSwapBuffers(w);
             if(smoke && ++frames>=4)break;
             if(smoke){fog=!fog;lighting.toggleAlarm();lighting.toggleCeiling();}
         }
         glDeleteBuffers(1,&vbo);glDeleteVertexArrays(1,&vao);
-    }catch(const std::exception& e){std::cerr<<e.what()<<'\n';result=1;}
+    }catch(const exception& e){cerr<<e.what()<<'\n';result=1;}
     glfwDestroyWindow(w);glfwTerminate();return result;
 }

@@ -1,4 +1,3 @@
-"""Rebuild the original seamless grayscale surface maps (binary PGM)."""
 from pathlib import Path
 from random import Random
 
@@ -17,7 +16,6 @@ for material in ("floor", "metal", "wall", "panel"):
             elif material == "wall":
                 value = 134 if x < 2 else 207 + grain
             else:
-                # Repeating perforations in the fronts of rack-mounted units.
                 value = 54 if (x % 16 - 8)**2 + (y % 16 - 8)**2 < 16 else 197 + grain
             pixels.append(value)
     Path(__file__).with_name(material + ".pgm").write_bytes(
