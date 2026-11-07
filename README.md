@@ -3,10 +3,42 @@ Lighting integration: per-fragment Blinn–Phong, two cold-blue ceiling point li
 independently blinking emissive LED quads, and flashing red alarm mode.
 The primitive room is an integration demonstration for the team's future scene.
 
+## Dependencies
+
+CMake downloads and builds the project's libraries automatically. You do not
+need vcpkg, Python, manual header copies, or separate library installation.
+The first configure requires internet access; later builds reuse the files
+in `build/_deps`. Versions and archive hashes are pinned in
+[`cmake/Dependencies.cmake`](cmake/Dependencies.cmake).
+
+| Dependency | How it is provided |
+| --- | --- |
+| GLFW 3.5.1 | Downloaded from GLFW's official source archive and built as a static library. |
+| GLM 1.0.3 | Downloaded from GLM's official source archive and used as headers. |
+| GLAD 2, OpenGL 3.3 loader | Pregenerated `deps/glad/gl.h` from the pinned GLFW archive, compiled by `cmake/glad.c`. |
+| Khronos/KHR definitions | Embedded in that generated GLAD header; no separate library is needed. |
+
+The loader follows [GLFW's own example setup](https://www.glfw.org/docs/latest/quick_guide.html).
+All machines use these same dependency sources, even if other versions are
+installed globally. When adding another library, declare its version and hash
+in `cmake/Dependencies.cmake` and link its CMake target in `CMakeLists.txt`.
+
+A clean PC still needs **CMake 3.24+**, a **C/C++ compiler and platform SDK**,
+and graphics drivers supporting **OpenGL 3.3**. CMake manages project libraries;
+it does not install the compiler, operating-system SDK, or graphics drivers.
+Windows and macOS instructions follow. Linux also needs the platform development
+packages required by GLFW's enabled X11/Wayland backends.
+
 ## Build (macOS)
-Install Xcode command line tools and dependencies:
+Install Xcode command line tools and CMake if missing:
 ```sh
-brew install cmake glfw glm
+xcode-select --install
+brew install cmake
+```
+
+From the repository root:
+
+```sh
 cmake -S . -B build
 cmake --build build -j
 ./build/OpenGLApp
@@ -19,44 +51,33 @@ the FPS counter updates. Shader and OpenGL errors cause a nonzero exit.
 
 ## Build (Windows, PowerShell)
 
-Prerequisites: Git, CMake 3.24 or newer, and Visual Studio 2022 or newer with
+Prerequisites: CMake 3.24 or newer, and Visual Studio 2022 or newer with
 the **Desktop development with C++** workload (including MSVC and a Windows
-SDK). Install missing Git/CMake tools with:
+SDK). If CMake is missing, install it with:
 
 ```powershell
-winget install --id Git.Git -e
 winget install --id Kitware.CMake -e
 ```
 
 Use Visual Studio Installer to add the C++ workload if needed, then open a new
 PowerShell terminal so installed tools are on `PATH`.
 
-From the repository root, install GLFW and GLM using
-[vcpkg](https://github.com/microsoft/vcpkg). Run this setup once per checkout;
-`.deps/` is ignored by Git. GLAD is already bundled in `external/glad`.
+From the repository root, configure, build, and run:
 
 ```powershell
-git clone --depth 1 https://github.com/microsoft/vcpkg.git .deps/vcpkg
-.\.deps\vcpkg\bootstrap-vcpkg.bat -disableMetrics
-.\.deps\vcpkg\vcpkg.exe install glfw3:x64-windows glm:x64-windows
-```
-
-Configure an x64 build with the
-[vcpkg CMake toolchain](https://learn.microsoft.com/en-us/vcpkg/users/buildsystems/cmake-integration),
-then build and run:
-
-```powershell
-$vcpkgToolchain = (Resolve-Path .\.deps\vcpkg\scripts\buildsystems\vcpkg.cmake).Path
-cmake --fresh -S . -B build -A x64 "-DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain" -DVCPKG_TARGET_TRIPLET=x64-windows
+cmake -S . -B build -A x64
 cmake --build build --config Release --parallel
 .\build\Release\OpenGLApp.exe
 ```
 
-`--fresh` clears old CMake configuration (including missing-package results)
-when switching to vcpkg. CMake selects the installed Visual Studio generator;
-both it and vcpkg must target x64. The toolchain makes GLFW and GLM discoverable
-and copies the required GLFW DLL beside the executable. Keep the source
-checkout available for shaders and textures.
+Keep the source checkout available for shaders and textures. GLFW and GLAD
+are linked into the executable, so no GLFW DLL needs to be copied beside it.
+
+If you previously configured with vcpkg, reset the cached toolchain once:
+
+```powershell
+cmake --fresh -S . -B build -A x64
+```
 
 For later builds, only the `cmake --build` command is needed. Verify with:
 
@@ -65,14 +86,25 @@ ctest --test-dir build -C Release --output-on-failure
 .\build\Release\OpenGLApp.exe --smoke-test
 ```
 
-If CMake still reports `glfw3` or `glm` missing, rerun the configure command
-with the toolchain argument. If `powershell.exe` is not found during vcpkg
-setup, restore the standard Windows tool directories for the current terminal
-and retry:
+## Project layout
 
-```powershell
-$env:PATH = "$env:SystemRoot\System32\WindowsPowerShell\v1.0;$env:SystemRoot\System32;$env:PATH"
+```text
+cmake/          Dependency versions, download rules, and the small GLAD adapter
+src/            Application C++ source and headers
+shaders/        GLSL shader programs
+assets/         Runtime textures
+tests/          Automated tests
+docs/           Reports and integration notes
+.vscode/        Shared editor settings
+CMakeLists.txt  Application and test build targets
+build/          Generated files only; ignored by Git
+  _deps/        Downloaded library sources and their build files
 ```
+
+Library source is not stored in the repository. The previous `external/glad/`
+and `.deps/vcpkg/` directories are no longer used. Deleting `build/` resets all
+build output and cached downloads; CMake recreates them on the next configure.
+Keep new generated output under `build/` rather than adding folders at the root.
 
 ## Integration
 Lighting.h exposes toggleAlarm(), toggleCeiling(), and apply().

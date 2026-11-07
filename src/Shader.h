@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <string>
 
 using namespace std;
@@ -14,8 +14,6 @@ public:
     Shader& operator=(const Shader&) = delete;
 
     void use();
-
-    // Call use() before setting uniforms. setInt also works for bools/samplers.
     void setInt(const char* name, int value);
     void setFloat(const char* name, float value);
     void setVec3(const char* name, float x, float y, float z);
