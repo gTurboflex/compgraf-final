@@ -1,12 +1,8 @@
 # Topic 27 — Server Room
-Lighting integration: per-fragment Blinn–Phong, two cold-blue ceiling point lights,
-independently blinking emissive LED quads, and flashing red alarm mode.
-The primitive room is an integration demonstration for the team's future scene.
 
 ## Dependencies
 
-CMake downloads and builds the project's libraries automatically. You do not
-need vcpkg, Python, manual header copies, or separate library installation.
+CMake downloads and builds the project's libraries automatically.
 The first configure requires internet access; later builds reuse the files
 in `build/_deps`. Versions and archive hashes are pinned in
 [`cmake/Dependencies.cmake`](cmake/Dependencies.cmake).
@@ -20,14 +16,11 @@ in `build/_deps`. Versions and archive hashes are pinned in
 
 The loader follows [GLFW's own example setup](https://www.glfw.org/docs/latest/quick_guide.html).
 All machines use these same dependency sources, even if other versions are
-installed globally. When adding another library, declare its version and hash
-in `cmake/Dependencies.cmake` and link its CMake target in `CMakeLists.txt`.
+installed globally.
 
 A clean PC still needs **CMake 3.24+**, a **C/C++ compiler and platform SDK**,
 and graphics drivers supporting **OpenGL 3.3**. CMake manages project libraries;
 it does not install the compiler, operating-system SDK, or graphics drivers.
-Windows and macOS instructions follow. Linux also needs the platform development
-packages required by GLFW's enabled X11/Wayland backends.
 
 ## Build (macOS)
 Install Xcode command line tools and CMake if missing:
@@ -43,11 +36,6 @@ cmake -S . -B build
 cmake --build build -j
 ./build/OpenGLApp
 ```
-Shader paths are resolved from the source directory at configure time. Keep the
-source checkout available when running this development build.
-A toggles alarm; L toggles ceiling lights; Escape exits. Keys toggle once per press.
-`./build/OpenGLApp --smoke-test` renders for about 1.2 seconds and checks that
-the FPS counter updates. Shader and OpenGL errors cause a nonzero exit.
 
 ## Build (Windows, PowerShell)
 
@@ -68,15 +56,6 @@ From the repository root, configure, build, and run:
 cmake -S . -B build -A x64
 cmake --build build --config Release --parallel
 .\build\Release\OpenGLApp.exe
-```
-
-Keep the source checkout available for shaders and textures. GLFW and GLAD
-are linked into the executable, so no GLFW DLL needs to be copied beside it.
-
-If you previously configured with vcpkg, reset the cached toolchain once:
-
-```powershell
-cmake --fresh -S . -B build -A x64
 ```
 
 For later builds, only the `cmake --build` command is needed. Verify with:
@@ -101,9 +80,7 @@ build/          Generated files only; ignored by Git
   _deps/        Downloaded library sources and their build files
 ```
 
-Library source is not stored in the repository. The previous `external/glad/`
-and `.deps/vcpkg/` directories are no longer used. Deleting `build/` resets all
-build output and cached downloads; CMake recreates them on the next configure.
+Deleting `build/` resets all build output and cached downloads; CMake recreates them on the next configure.
 Keep new generated output under `build/` rather than adding folders at the root.
 
 ## Integration
