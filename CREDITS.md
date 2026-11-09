@@ -8,11 +8,6 @@ Dependencies are downloaded by CMake from pinned upstream archives:
   for its generator and Khronos specifications. The header includes the
   Khronos platform definitions and their copyright/permission notice.
 
-All demonstration geometry is generated from primitives; no external assets or
-copied shader snippets were added.
-AI use: OpenAI Codex assisted with the lighting implementation and documentation.
-Team members should review the code and explain the equations during defense.
-
 ## Member 5 assets
 The floor, painted wall, brushed metal and perforated panel images in
 assets/textures/ were generated specifically for this project by OpenAI Codex

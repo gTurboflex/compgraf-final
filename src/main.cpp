@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
+#include "Mesh.h"
 #include "Lighting.h"
 #include "Texture.h"
 #include "ServerEffects.h"
@@ -74,12 +75,8 @@ Shaders setupShaders() {
     };
 }
 
-void setupGeometry() {
-
-}
-
-void setupDemoGeometry(GLuint& vao, GLuint& vbo, GLuint& ebo) {
-    vector<float> vertices;
+Mesh setupGeometry() {
+    vector<Vertex> vertices;
     vector<GLuint> indices;
     const GLuint faceIndices[] = {0, 1, 2, 0, 2, 3};
     const float corners[][2] = {
@@ -91,35 +88,20 @@ void setupDemoGeometry(GLuint& vao, GLuint& vbo, GLuint& ebo) {
 
     for (int axis = 0; axis < 3; axis++) {
         for (int sign : {-1, 1}) {
-            const GLuint baseVertex = static_cast<GLuint>(vertices.size() / 6);
+            const GLuint baseVertex = static_cast<GLuint>(vertices.size());
             for (int i = 0; i < 4; i++) {
                 vec3 position(0), normal(0);
                 position[axis] = sign * 0.5f;
                 normal[axis] = float(sign);
                 position[(axis + 1) % 3] = corners[i][0];
                 position[(axis + 2) % 3] = corners[i][1];
-                for (int j = 0; j < 3; j++) vertices.push_back(position[j]);
-                for (int j = 0; j < 3; j++) vertices.push_back(normal[j]);
+                vertices.push_back({position, normal});
             }
             for (GLuint index : faceIndices) indices.push_back(baseVertex + index);
         }
     }
 
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-    glGenBuffers(1, &ebo);
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
+    return Mesh(vertices, indices);
 }
 
 void processInput(GLFWwindow* window, Lighting& lighting, bool& fog) {
@@ -140,18 +122,17 @@ void processInput(GLFWwindow* window, Lighting& lighting, bool& fog) {
     }
 }
 
-void drawObject(Shader& shader, vec3 position, vec3 scale, bool quad = false) {
+void drawObject(const Mesh& mesh, Shader& shader, vec3 position, vec3 scale, bool quad = false) {
     shader.use();
     auto model = glm::scale(translate(mat4(1), position), scale);
     shader.setMat4("model", value_ptr(model));
-    const void* indexOffset = quad ? reinterpret_cast<const void*>(30 * sizeof(GLuint)) : nullptr;
-    glDrawElements(GL_TRIANGLES, quad ? 6 : 36, GL_UNSIGNED_INT, indexOffset);
+    if (quad) mesh.draw(30, 6);
+    else mesh.draw();
 }
 
-void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, bool fog, GLuint vao, int width, int height) {
+void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, bool fog, const Mesh& mesh, int width, int height) {
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBindVertexArray(vao);
 
     float time = float(glfwGetTime());
     vec3 eye(7, 5, 10);
@@ -168,21 +149,21 @@ void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, boo
     lighting.apply(shaders.lit, time);
 
     materials.floor.apply(shaders.lit);
-    drawObject(shaders.lit, {0, -0.1f, -1}, {10, 0.2f, 8});
+    drawObject(mesh, shaders.lit, {0, -0.1f, -1}, {10, 0.2f, 8});
     materials.wall.apply(shaders.lit);
-    drawObject(shaders.lit, {0, 2, -5}, {10, 4, 0.15f});
-    drawObject(shaders.lit, {-5, 2, -1}, {0.15f, 4, 8});
+    drawObject(mesh, shaders.lit, {0, 2, -5}, {10, 4, 0.15f});
+    drawObject(mesh, shaders.lit, {-5, 2, -1}, {0.15f, 4, 8});
 
     for (int rack = 0; rack < 4; rack++) {
         float x = -3.f + rack * 2.f;
         materials.metal.apply(shaders.lit);
-        drawObject(shaders.lit, {x, 1.5f, -2}, {1.4f, 3, 1.5f});
+        drawObject(mesh, shaders.lit, {x, 1.5f, -2}, {1.4f, 3, 1.5f});
         for (int row = 0; row < 8; row++) {
             materials.panel.apply(shaders.lit);
-            drawObject(shaders.lit, {x, 0.25f + row * 0.35f, -1.22f}, {1.25f, 0.28f, 0.05f});
+            drawObject(mesh, shaders.lit, {x, 0.25f + row * 0.35f, -1.22f}, {1.25f, 0.28f, 0.05f});
             for (int k = 0; k < 3; k++) {
                 ServerEffects::apply(shaders.led, lighting, time, rack * 24 + row * 3 + k);
-                drawObject(shaders.led, {x - 0.45f + k * 0.14f, 0.25f + row * 0.35f, -1.18f}, {0.065f, 0.065f, 0.01f}, true);
+                drawObject(mesh, shaders.led, {x - 0.45f + k * 0.14f, 0.25f + row * 0.35f, -1.18f}, {0.065f, 0.065f, 0.01f}, true);
             }
         }
     }
@@ -200,7 +181,7 @@ void updateFPS(GLFWwindow* window, PerformanceStats& stats, double frameTime) {
     }
 }
 
-void run(GLFWwindow* window, Shaders& shaders, GLuint vao, bool smokeTest) {
+void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, bool smokeTest) {
     Materials materials;
     Lighting lighting;
     PerformanceStats stats;
@@ -222,7 +203,7 @@ void run(GLFWwindow* window, Shaders& shaders, GLuint vao, bool smokeTest) {
             continue;
         }
 
-        renderScene(shaders, materials, lighting, fog, vao, width, height);
+        renderScene(shaders, materials, lighting, fog, mesh, width, height);
         glfwSwapBuffers(window);
 
         double now = glfwGetTime();
@@ -242,31 +223,26 @@ void run(GLFWwindow* window, Shaders& shaders, GLuint vao, bool smokeTest) {
     }
 }
 
-void cleanup(GLFWwindow* window, GLuint vao, GLuint vbo, GLuint ebo) {
-    if (ebo != 0) glDeleteBuffers(1, &ebo);
-    if (vbo != 0) glDeleteBuffers(1, &vbo);
-    if (vao != 0) glDeleteVertexArrays(1, &vao);
+void cleanup(GLFWwindow* window) {
     if (window) glfwDestroyWindow(window);
     glfwTerminate();
 }
 
 int main(int argc, char** argv) {
     GLFWwindow* window = nullptr;
-    GLuint vao = 0, vbo = 0, ebo = 0;
     bool smokeTest = argc > 1 && string(argv[1]) == "--smoke-test";
     int result = 0;
 
     try {
         window = setupOpenGL();
         Shaders shaders = setupShaders();
-        setupGeometry();
-        setupDemoGeometry(vao, vbo, ebo);
-        run(window, shaders, vao, smokeTest);
+        Mesh mesh = setupGeometry();
+        run(window, shaders, mesh, smokeTest);
     } catch (const exception& e) {
         cerr << e.what() << '\n';
         result = 1;
     }
 
-    cleanup(window, vao, vbo, ebo);
+    cleanup(window);
     return result;
 }
