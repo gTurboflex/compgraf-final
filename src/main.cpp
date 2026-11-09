@@ -78,9 +78,10 @@ void setupGeometry() {
 
 }
 
-void setupDemoGeometry(GLuint& vao, GLuint& vbo) {
+void setupDemoGeometry(GLuint& vao, GLuint& vbo, GLuint& ebo) {
     vector<float> vertices;
-    const int indices[] = {0, 1, 2, 0, 2, 3};
+    vector<GLuint> indices;
+    const GLuint faceIndices[] = {0, 1, 2, 0, 2, 3};
     const float corners[][2] = {
         {-0.5f, -0.5f}, 
         {0.5f, -0.5f}, 
@@ -90,7 +91,8 @@ void setupDemoGeometry(GLuint& vao, GLuint& vbo) {
 
     for (int axis = 0; axis < 3; axis++) {
         for (int sign : {-1, 1}) {
-            for (int i : indices) {
+            const GLuint baseVertex = static_cast<GLuint>(vertices.size() / 6);
+            for (int i = 0; i < 4; i++) {
                 vec3 position(0), normal(0);
                 position[axis] = sign * 0.5f;
                 normal[axis] = float(sign);
@@ -99,19 +101,25 @@ void setupDemoGeometry(GLuint& vao, GLuint& vbo) {
                 for (int j = 0; j < 3; j++) vertices.push_back(position[j]);
                 for (int j = 0; j < 3; j++) vertices.push_back(normal[j]);
             }
+            for (GLuint index : faceIndices) indices.push_back(baseVertex + index);
         }
     }
 
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
 }
 
 void processInput(GLFWwindow* window, Lighting& lighting, bool& fog) {
@@ -136,7 +144,8 @@ void drawObject(Shader& shader, vec3 position, vec3 scale, bool quad = false) {
     shader.use();
     auto model = glm::scale(translate(mat4(1), position), scale);
     shader.setMat4("model", value_ptr(model));
-    glDrawArrays(GL_TRIANGLES, quad ? 30 : 0, quad ? 6 : 36);
+    const void* indexOffset = quad ? reinterpret_cast<const void*>(30 * sizeof(GLuint)) : nullptr;
+    glDrawElements(GL_TRIANGLES, quad ? 6 : 36, GL_UNSIGNED_INT, indexOffset);
 }
 
 void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, bool fog, GLuint vao, int width, int height) {
@@ -233,7 +242,8 @@ void run(GLFWwindow* window, Shaders& shaders, GLuint vao, bool smokeTest) {
     }
 }
 
-void cleanup(GLFWwindow* window, GLuint vao, GLuint vbo) {
+void cleanup(GLFWwindow* window, GLuint vao, GLuint vbo, GLuint ebo) {
+    if (ebo != 0) glDeleteBuffers(1, &ebo);
     if (vbo != 0) glDeleteBuffers(1, &vbo);
     if (vao != 0) glDeleteVertexArrays(1, &vao);
     if (window) glfwDestroyWindow(window);
@@ -242,7 +252,7 @@ void cleanup(GLFWwindow* window, GLuint vao, GLuint vbo) {
 
 int main(int argc, char** argv) {
     GLFWwindow* window = nullptr;
-    GLuint vao = 0, vbo = 0;
+    GLuint vao = 0, vbo = 0, ebo = 0;
     bool smokeTest = argc > 1 && string(argv[1]) == "--smoke-test";
     int result = 0;
 
@@ -250,14 +260,13 @@ int main(int argc, char** argv) {
         window = setupOpenGL();
         Shaders shaders = setupShaders();
         setupGeometry();
-        setupDemoGeometry(vao, vbo);
+        setupDemoGeometry(vao, vbo, ebo);
         run(window, shaders, vao, smokeTest);
-        // Shader destructors run here, while the OpenGL context still exists.
     } catch (const exception& e) {
         cerr << e.what() << '\n';
         result = 1;
     }
 
-    cleanup(window, vao, vbo);
+    cleanup(window, vao, vbo, ebo);
     return result;
 }
