@@ -83,39 +83,44 @@ build/          Generated files only; ignored by Git
 Deleting `build/` resets all build output and cached downloads; CMake recreates them on the next configure.
 Keep new generated output under `build/` rather than adding folders at the root.
 
-## Integration
-Lighting.h exposes toggleAlarm(), toggleCeiling(), and apply().
-ServerEffects.h uploads time and a stable unique LED ID. Assign one ID to each
-LED; do not generate a new ID each frame. Both shader programs use model/view/
-projection uniforms; lit geometry uses location 0 position and location 1 normal.
-See docs/lighting.md for equations and verification.
-Other team requirements (camera controls, full scene hierarchy, FPS
-overlay, report and video) remain outside this lighting contribution.
-## Member 5 — Textures and atmosphere
+## Team responsibilities
 
-The floor, walls, rack frames and perforated front panels each have a repeating
-surface map and independent Blinn–Phong parameters. Press F to toggle cold-air
-fog. Compare the floor near and far from the camera, then switch A to see the
-fog and LEDs respond to alarm mode. Texture paths, like shader paths, are set
-at configure time. The four surface maps are bundled; Python is only needed to
-regenerate them.
+### Member 1 — Application setup and rendering foundation
+- Configure CMake, dependencies, and build instructions.
+- Initialize GLFW, GLAD, the OpenGL context, and rendering settings.
+- Develop the Shader class for loading, compiling, linking, and setting uniforms.
+- Develop the Mesh class for managing VAO/VBO/EBO buffers and drawing geometry.
+- Organize application setup, the render loop, resource cleanup, and module integration.
+- Maintain README build instructions and prepare the final release.
 
-See [Textures and atmosphere](docs/textures-and-atmosphere.md) for the report
-section and the mesh integration contract. AI use: OpenAI Codex generated the
-Member 5 code, surface maps and documentation based on the assigned task.
+### Member 2 — Models, scene layout, and hierarchy
+- Build the room, reusable server racks, server units, and supporting equipment.
+- Arrange rack copies and other objects into a coherent server-room scene.
+- Define geometry, normals, and UV coordinates in coordination with Member 5.
+- Implement model transformations and a parent–child hierarchy.
+- Create hinged rack-door animation and cable-tray geometry.
+- Document scene construction and transformations; assemble the team’s presentation slides.
 
-## Member 4 - FPS calculation
+### Member 3 — Lighting, shaders, and server effects
+- Write the GLSL vertex and fragment shaders for lighting and LEDs.
+- Implement per-fragment Blinn–Phong shading with ambient, diffuse, and specular terms.
+- Add multiple cold-blue ceiling lights and support toggling them.
+- Implement emissive server LEDs with independent randomized blink timing.
+- Implement the overheat alarm mode with flashing-red lighting.
+- Document the lighting equations, shader logic, and alarm behavior.
 
-This first stage adds a small FPS counter. The window title shows FPS and
-average frame time, updated about twice per second. FPS is the number of frames
-divided by their elapsed time. Zero, negative, and non-finite time values are
-ignored. Rendering and timing pause while the window is minimized.
+### Member 4 — Camera, interaction, UI, and performance
+- Implement keyboard-controlled walking and mouse-look camera movement.
+- Keep movement independent of frame rate and update projection when the window resizes.
+- Connect controls for alarm mode, ceiling lights, fog, and rack-door interaction.
+- Display controls help, FPS, and frame-time information.
+- Test navigation and interactions; measure performance at 1280×720.
+- Prepare the testing section and FPS table; assemble the team’s demo video.
 
-The in-scene help panel, benchmark files, walking camera, mouse look, and door
-controls are for later stages. Current controls remain A, L, F, and Esc.
-
-Build as above, then run `ctest --test-dir build --output-on-failure` (add
-`-C Release` on Windows) to check
-the FPS calculation. The tests cover different frame rates, variable frame
-times, invalid inputs, and consecutive measurement intervals.
-
+### Member 5 — Textures, materials, and atmosphere
+- Develop texture loading, filtering, wrapping, and mipmap generation.
+- Create and apply materials for the floor, walls, racks, and server panels.
+- Coordinate UV mapping with Member 2 and texture sampling with Member 3.
+- Implement textured floor tiles and cold-air fog.
+- Maintain a consistent visual style and record asset sources and licenses in CREDITS.md.
+- Document textures and atmosphere; assemble the report from everyone’s contributions.
