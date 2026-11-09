@@ -158,9 +158,11 @@ void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, boo
         float x = -3.f + rack * 2.f;
         materials.metal.apply(shaders.lit);
         drawObject(mesh, shaders.lit, {x, 1.5f, -2}, {1.4f, 3, 1.5f});
+
         for (int row = 0; row < 8; row++) {
             materials.panel.apply(shaders.lit);
             drawObject(mesh, shaders.lit, {x, 0.25f + row * 0.35f, -1.22f}, {1.25f, 0.28f, 0.05f});
+            
             for (int k = 0; k < 3; k++) {
                 ServerEffects::apply(shaders.led, lighting, time, rack * 24 + row * 3 + k);
                 drawObject(mesh, shaders.led, {x - 0.45f + k * 0.14f, 0.25f + row * 0.35f, -1.18f}, {0.065f, 0.065f, 0.01f}, true);
