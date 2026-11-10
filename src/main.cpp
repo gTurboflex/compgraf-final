@@ -9,6 +9,8 @@
 #include "Texture.h"
 #include "ServerEffects.h"
 #include "PerformanceStats.h"
+#include "UI.h"
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -18,6 +20,69 @@
 
 using namespace std;
 using namespace glm;
+
+struct RunOptions {
+    bool smokeTest = false;
+    bool benchmark = false;
+    string mode = "normal";
+    string output;
+    string capture;
+};
+
+RunOptions readOptions(int argc, char** argv) {
+    RunOptions options;
+    for (int i = 1; i < argc; ++i) {
+        const string arg = argv[i];
+        if (arg == "--smoke-test") options.smokeTest = true;
+        else if (arg == "--benchmark" && i + 1 < argc) {
+            options.benchmark = true;
+            options.mode = argv[++i];
+        } else if (arg == "--output" && i + 1 < argc) options.output = argv[++i];
+        else if (arg == "--capture" && i + 1 < argc) options.capture = argv[++i];
+        else throw runtime_error("Usage: OpenGLApp [--smoke-test] [--benchmark normal|alarm|ceiling-off] [--output result.json] [--capture frame.ppm]");
+    }
+    if (options.mode != "normal" && options.mode != "alarm" && options.mode != "ceiling-off")
+        throw runtime_error("Unknown benchmark mode");
+    if (options.smokeTest && options.benchmark)
+        throw runtime_error("Choose smoke test or benchmark");
+    if (!options.output.empty() && !options.benchmark)
+        throw runtime_error("--output requires --benchmark");
+    return options;
+}
+
+void captureFrame(const string& path, int width, int height) {
+    vector<unsigned char> pixels(static_cast<size_t>(width) * height * 3);
+    GLint alignment;
+    glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    glPixelStorei(GL_PACK_ALIGNMENT, alignment);
+    ofstream file(path, ios::binary);
+    file << "P6\n" << width << ' ' << height << "\n255\n";
+    for (int y = height - 1; y >= 0; --y)
+        file.write(reinterpret_cast<const char*>(pixels.data() + static_cast<size_t>(y) * width * 3), width * 3);
+    if (!file) throw runtime_error("Cannot write frame capture");
+}
+
+void writeBenchmark(const RunOptions& options, const PerformanceStats& stats, int width, int height) {
+    const auto data = stats.benchmark();
+    ofstream file;
+    if (!options.output.empty()) {
+        file.open(options.output);
+        if (!file) throw runtime_error("Cannot write benchmark result");
+    }
+    ostream& out = options.output.empty() ? cout : file;
+    out << fixed << setprecision(3) << "{\n  \"mode\": " << quoted(options.mode)
+        << ",\n  \"width\": " << width << ", \"height\": " << height
+        << ",\n  \"renderer\": " << quoted(reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
+        << ",\n  \"opengl\": " << quoted(reinterpret_cast<const char*>(glGetString(GL_VERSION)))
+        << ",\n  \"vsync\": false, \"warmup_seconds\": 2,\n  \"frames\": " << data.frames
+        << ", \"seconds\": " << data.seconds << ",\n  \"mean_fps\": " << data.meanFps
+        << ",\n  \"p95_frame_ms\": " << data.p95FrameMs
+        << ",\n  \"max_frame_ms\": " << data.maxFrameMs
+        << ",\n  \"complete\": " << (stats.benchmarkDone() ? "true" : "false") << "\n}\n";
+    if (!out) throw runtime_error("Cannot write benchmark result");
+}
 
 struct Shaders {
     Shader lit;
@@ -50,7 +115,7 @@ GLFWwindow* setupOpenGL() {
 #endif
 
     GLFWwindow* window = glfwCreateWindow(
-        1280, 720, "Server Room | A: alarm | L: ceiling | F: fog | Esc: exit",
+        1280, 720, "Server Room | A: alarm | L: ceiling | F: fog | H: help | Esc: exit",
         nullptr, nullptr);
     if (!window) {
         throw runtime_error("Could not create the window.");
@@ -178,19 +243,37 @@ void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, boo
 void updateFPS(GLFWwindow* window, PerformanceStats& stats, double frameTime) {
     if (stats.addFrame(frameTime)) {
         ostringstream title;
-        title << "Server Room | FPS " << fixed << setprecision(1) << stats.fps() << " | " << setprecision(2) << stats.frameMs() << " ms" << " | A: alarm | L: ceiling | F: fog | Esc: exit";
+        title << "Server Room | FPS " << fixed << setprecision(1) << stats.fps() << " | " << setprecision(2) << stats.frameMs() << " ms" << " | A: alarm | L: ceiling | F: fog | H: help | Esc: exit";
         glfwSetWindowTitle(window, title.str().c_str());
     }
 }
 
-void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, bool smokeTest) {
+void helpKeyCallback(GLFWwindow* window, int key, int, int action, int) {
+    if (key == GLFW_KEY_H && action == GLFW_PRESS) {
+        auto& visible = *static_cast<bool*>(glfwGetWindowUserPointer(window));
+        visible = !visible;
+    }
+}
+
+void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOptions& options) {
     Materials materials;
     Lighting lighting;
     PerformanceStats stats;
+    UI ui(SHADER_DIR "/ui.vert", SHADER_DIR "/ui.frag");
+    glfwSwapInterval(options.benchmark || options.smokeTest ? 0 : 1);
+    if (options.benchmark) stats.beginBenchmark(2, 30);
+    if (options.mode == "alarm") lighting.toggleAlarm();
+    if (options.mode == "ceiling-off") lighting.toggleCeiling();
+    bool help = true;
+    bool captured = false;
+    glfwSetWindowUserPointer(window, &help);
+    glfwSetKeyCallback(window, helpKeyCallback);
     bool fog = true;
     int frames = 0;
+    int smokeStage = 0;
     double previous = glfwGetTime();
     double started = previous;
+    int lastWidth = 1280, lastHeight = 720;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -206,6 +289,36 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, bool smokeTest)
         }
 
         renderScene(shaders, materials, lighting, fog, mesh, width, height);
+        lastWidth = width;
+        lastHeight = height;
+        UIState hud;
+        hud.fps = stats.fps();
+        hud.frameMs = stats.frameMs();
+        hud.helpVisible = help;
+        hud.alarm = lighting.alarm;
+        hud.ceiling = lighting.ceilingEnabled;
+        hud.fog = fog;
+        GLint sceneProgram = 0, sceneVao = 0;
+        if (options.smokeTest) {
+            glGetIntegerv(GL_CURRENT_PROGRAM, &sceneProgram);
+            glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &sceneVao);
+        }
+        ui.draw(width, height, hud);
+        if (options.smokeTest) {
+            GLint restoredProgram = 0, restoredVao = 0;
+            GLboolean depthWrite = GL_FALSE;
+            glGetIntegerv(GL_CURRENT_PROGRAM, &restoredProgram);
+            glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &restoredVao);
+            glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWrite);
+            if (restoredProgram != sceneProgram || restoredVao != sceneVao ||
+                !glIsEnabled(GL_DEPTH_TEST) || glIsEnabled(GL_BLEND) || !depthWrite)
+                throw runtime_error("HUD did not restore scene rendering state");
+        }
+        if (!options.capture.empty() && !captured && glfwGetTime() - started >= 1.0) {
+            captureFrame(options.capture, width, height);
+            captured = true;
+        }
+        if (glGetError() != GL_NO_ERROR) throw runtime_error("OpenGL HUD rendering error");
         glfwSwapBuffers(window);
 
         double now = glfwGetTime();
@@ -213,16 +326,35 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, bool smokeTest)
         previous = now;
         ++frames;
 
-        if (smokeTest && now - started >= 1.2) {
+        if (options.smokeTest && now - started >= 2.6) {
             if (stats.fps() <= 0) throw runtime_error("FPS counter did not update");
+            if (smokeStage != 2 || !help || width != 1280 || height != 720)
+                throw runtime_error("HUD resize/help smoke check did not finish");
             break;
         }
-        if (smokeTest && frames <= 4) {
+        if (options.smokeTest && smokeStage == 0 && now - started >= 0.5) {
+            helpKeyCallback(window, GLFW_KEY_H, 0, GLFW_PRESS, 0);
+            helpKeyCallback(window, GLFW_KEY_H, 0, GLFW_REPEAT, 0);
+            helpKeyCallback(window, GLFW_KEY_H, 0, GLFW_RELEASE, 0);
+            if (help) throw runtime_error("Help callback did not ignore key repeat/release");
+            glfwSetWindowSize(window, 960, 540);
+            smokeStage = 1;
+        } else if (options.smokeTest && smokeStage == 1 && now - started >= 1.5) {
+            if (width != 960 || height != 540) throw runtime_error("Window resize failed");
+            helpKeyCallback(window, GLFW_KEY_H, 0, GLFW_PRESS, 0);
+            glfwSetWindowSize(window, 1280, 720);
+            smokeStage = 2;
+        }
+        if (options.smokeTest && frames <= 4) {
             fog = !fog;
             lighting.toggleAlarm();
             lighting.toggleCeiling();
         }
+        if (options.benchmark && stats.benchmarkDone()) break;
     }
+    glfwSetKeyCallback(window, nullptr);
+    glfwSetWindowUserPointer(window, nullptr);
+    if (options.benchmark) writeBenchmark(options, stats, lastWidth, lastHeight);
 }
 
 void cleanup(GLFWwindow* window) {
@@ -232,14 +364,14 @@ void cleanup(GLFWwindow* window) {
 
 int main(int argc, char** argv) {
     GLFWwindow* window = nullptr;
-    bool smokeTest = argc > 1 && string(argv[1]) == "--smoke-test";
     int result = 0;
 
     try {
+        const auto options = readOptions(argc, argv);
         window = setupOpenGL();
         Shaders shaders = setupShaders();
         Mesh mesh = setupGeometry();
-        run(window, shaders, mesh, smokeTest);
+        run(window, shaders, mesh, options);
     } catch (const exception& e) {
         cerr << e.what() << '\n';
         result = 1;

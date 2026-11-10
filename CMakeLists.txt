@@ -13,6 +13,7 @@ add_executable(OpenGLApp
     src/Shader.cpp
     src/Texture.cpp
     src/PerformanceStats.cpp
+    src/UI.cpp
 )
 target_link_libraries(OpenGLApp PRIVATE glfw glm::glm glad)
 target_compile_definitions(OpenGLApp PRIVATE
