@@ -65,6 +65,38 @@ ctest --test-dir build -C Release --output-on-failure
 .\build\Release\OpenGLApp.exe --smoke-test
 ```
 
+## Controls and FPS (Member 4, UI stage)
+
+The scene now shows a help panel, FPS, frame time, and alarm/light/fog status.
+Press **H** to hide or show the help lines. FPS and status stay visible.
+
+| Key | Action |
+| --- | --- |
+| A | Toggle the alarm |
+| L | Toggle the ceiling lights |
+| F | Toggle fog |
+| H | Show or hide help |
+| Esc | Close the window |
+
+This stage completes the UI and performance half of Member 4's work.
+Walking, mouse look, and nearby-door interaction are still a later stage.
+The current camera is fixed.
+
+To measure the scene, run one command at a time. Each run skips two seconds
+and then measures 30 seconds at 1280x720 with VSync off:
+
+```powershell
+.\build\Release\OpenGLApp.exe --benchmark normal --output normal.json
+.\build\Release\OpenGLApp.exe --benchmark alarm --output alarm.json
+.\build\Release\OpenGLApp.exe --benchmark ceiling-off --output ceiling-off.json
+```
+
+For Ninja builds use `build/OpenGLApp.exe`; on macOS use `./build/OpenGLApp`.
+Do not resize the window or change scene settings during a benchmark.
+Results include the actual OpenGL renderer, mean FPS, p95 frame time, and
+whether the sample finished. Normal use has VSync on.
+See [UI implementation and test results](docs/ui-fps-stage2.md).
+
 ## Project layout
 
 ```text
