@@ -1,4 +1,4 @@
-# Lighting and effects — Member 3
+# Lighting and effects
 All lighting calculations use world coordinates. Vertex positions use M p;
 normals use transpose(inverse(mat3(M))) n, then are normalized per fragment.
 This preserves perpendicular normals under nonuniform scales. Models must have

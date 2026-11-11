@@ -1,7 +1,9 @@
 #pragma once
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <string>
+
+using namespace std;
 
 using namespace std;
 
@@ -23,6 +25,8 @@ public:
 private:
     unsigned int program;
 
+    string readFile(const char* path);
+    unsigned int compileShader(unsigned int type, const string& source,
     string readFile(const char* path);
     unsigned int compileShader(unsigned int type, const string& source,
                                const char* path);

@@ -1,10 +1,12 @@
 # Credits
-The project already includes GLAD and uses GLFW. This contribution also uses
-GLM (https://github.com/g-truc/glm, MIT license).
-All demonstration geometry is generated from primitives; no external assets or
-copied shader snippets were added.
-AI use: OpenAI Codex assisted with the Member 3 implementation and documentation.
-Team members should review the code and explain the equations during defense.
+Dependencies are downloaded by CMake from pinned upstream archives:
+
+- [GLFW](https://github.com/glfw/glfw), zlib/libpng license.
+- [GLM](https://github.com/g-truc/glm), MIT license.
+- [GLAD](https://github.com/Dav1dde/glad), using the pregenerated OpenGL 3.3
+  header shipped with GLFW. See [GLAD's licensing](https://github.com/Dav1dde/glad/blob/glad2/LICENSE)
+  for its generator and Khronos specifications. The header includes the
+  Khronos platform definitions and their copyright/permission notice.
 
 ## Member 5 assets
 The floor, painted wall, brushed metal and perforated panel images in
