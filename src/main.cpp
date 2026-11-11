@@ -10,6 +10,7 @@
 #include "Rack.h"
 #include "PerformanceStats.h"
 #include "UI.h"
+#include "Audio.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -238,11 +239,19 @@ void updateFPS(GLFWwindow* window, PerformanceStats& stats, double frameTime) {
     }
 }
 
+struct InputFeedback {
+    bool* help;
+    Audio* audio;
+};
+
 void helpKeyCallback(GLFWwindow* window, int key, int, int action, int) {
-    if (key == GLFW_KEY_H && action == GLFW_PRESS) {
-        auto& visible = *static_cast<bool*>(glfwGetWindowUserPointer(window));
-        visible = !visible;
-    }
+    if (action != GLFW_PRESS) return;
+    auto* feedback = static_cast<InputFeedback*>(glfwGetWindowUserPointer(window));
+    if (!feedback) return;
+    if (key == GLFW_KEY_H) *feedback->help = !*feedback->help;
+    if (key == GLFW_KEY_A || key == GLFW_KEY_L ||
+        key == GLFW_KEY_F || key == GLFW_KEY_H)
+        feedback->audio->playClick();
 }
 
 void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOptions& options) {
@@ -259,9 +268,12 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
     if (options.benchmark) stats.beginBenchmark(2, 30);
     if (options.mode == "alarm") lighting.toggleAlarm();
     if (options.mode == "ceiling-off") lighting.toggleCeiling();
+    Audio audio;
+    audio.setAlarm(lighting.alarm);
     bool help = true;
+    InputFeedback feedback{&help, &audio};
     bool captured = false;
-    glfwSetWindowUserPointer(window, &help);
+    glfwSetWindowUserPointer(window, &feedback);
     glfwSetKeyCallback(window, helpKeyCallback);
     bool fog = true;
     int frames = 0;
@@ -273,6 +285,7 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         processInput(window, lighting, fog);
+        audio.setAlarm(lighting.alarm);
         if (glfwWindowShouldClose(window)) break;
 
         int width, height;

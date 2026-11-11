@@ -172,3 +172,16 @@ indexed Mesh renderer, and existing materials. Codex ran the Windows Release
 build, CTest, and OpenGL smoke test, and inspected a framebuffer capture.
 These automated checks do not replace team review or testing on the TA machine.
 The report-ready disclosure is in [docs/report/ai-use.md](docs/report/ai-use.md).
+
+## Server-room audio
+
+A quiet compressor/fan hum starts with the application. A, L, F and H play a
+short button tone once per press (holding a key does not repeat it).
+A also starts/stops a sweeping alarm siren, synchronized with alarm lighting.
+The hum continues underneath the siren. Sound fades in and the alarm fades out
+to avoid abrupt transitions.
+
+Audio is synthesized at runtime; no sound files or extra system installation
+are needed. miniaudio 0.11.23 is bundled in external/miniaudio with its license.
+If the output device cannot start, the application prints a warning and keeps
+running silently. See [audio details](docs/audio.md).
