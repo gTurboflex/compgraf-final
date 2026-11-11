@@ -82,6 +82,12 @@ This stage completes the UI and performance half of Member 4's work.
 Walking, mouse look, and nearby-door interaction are still a later stage.
 The current camera is fixed.
 
+The scene renders four instances of `src/models/Rack.cpp`, sharing the indexed
+cube mesh. Each rack contains a frame, server units, LED quads, and a hinged
+door frame. Metal and panel materials use the existing textures. The door's
+`toggle()` / `update(dt)` API is available, but keyboard door control is not
+connected yet.
+
 To measure the scene, run one command at a time. Each run skips two seconds
 and then measures 30 seconds at 1280x720 with VSync off:
 
@@ -156,3 +162,13 @@ Keep new generated output under `build/` rather than adding folders at the root.
 - Implement textured floor tiles and cold-air fog.
 - Maintain a consistent visual style and record asset sources and licenses in CREDITS.md.
 - Document textures and atmosphere; assemble the report from everyone’s contributions.
+
+## AI use
+
+OpenAI Codex assisted with project planning and generated the procedural
+textures credited in CREDITS.md. On 11 November 2026, Codex repaired duplicated
+code from the latest merge and integrated the Rack model with CMake, the
+indexed Mesh renderer, and existing materials. Codex ran the Windows Release
+build, CTest, and OpenGL smoke test, and inspected a framebuffer capture.
+These automated checks do not replace team review or testing on the TA machine.
+The report-ready disclosure is in [docs/report/ai-use.md](docs/report/ai-use.md).

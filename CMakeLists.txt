@@ -10,6 +10,7 @@ include(cmake/Dependencies.cmake)
 add_executable(OpenGLApp
     src/main.cpp
     src/Mesh.cpp
+    src/models/Rack.cpp
     src/Shader.cpp
     src/Texture.cpp
     src/PerformanceStats.cpp
