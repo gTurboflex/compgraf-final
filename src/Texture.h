@@ -1,7 +1,6 @@
 #pragma once
 #include "Shader.h"
 
-// Owns a single-channel, repeating surface map. Destroy before the GL context.
 class Texture {
 public:
     explicit Texture(const char* path);

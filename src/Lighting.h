@@ -1,6 +1,5 @@
 #pragma once
 #include "Shader.h"
-// Public controls API: call toggles on key press edges.
 struct Lighting {
     bool alarm = false;
     bool ceilingEnabled = true;
