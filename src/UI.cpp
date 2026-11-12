@@ -115,7 +115,8 @@ void UI::draw(int width, int height, const UIState& state) {
             << " | FRAME " << setprecision(2) << state.frameMs << " MS";
     const string status = string("ALARM ") + onOff(state.alarm) +
         " | CEILING " + onOff(state.ceiling) + " | FOG " + onOff(state.fog);
-    const string key = fpsLine.str() + status +
+    const string capture = state.mouseCaptured ? "TAB: RELEASE MOUSE" : "CLICK OR TAB: MOUSE LOOK";
+    const string key = fpsLine.str() + status + capture + state.doorPrompt +
                             (state.helpVisible ? "HELP" : "");
     GLint oldProgram, oldVao, oldBuffer, srcRgb, dstRgb, srcAlpha, dstAlpha, equationRgb, equationAlpha;
     GLboolean depthMask;
@@ -133,18 +134,28 @@ void UI::draw(int width, int height, const UIState& state) {
     if (key != cachedText || width != cachedWidth || height != cachedHeight) {
         cachedText = key; cachedWidth = width; cachedHeight = height;
         vertices.clear();
-        const float scale = min(float(height) / 720.f, float(width) / 580.f);
+        const float scale = min(float(height) / 720.f, float(width) / 660.f);
         const float unit = 2 * scale, line = 23 * scale;
-        const float panelHeight = (state.helpVisible ? 132 : 98) * scale;
-        rectangle(12*scale,12*scale,540*scale,panelHeight,0.015f,0.025f,0.045f,0.91f);
+        const float panelHeight = (state.helpVisible ? 220 : 104) * scale;
+        rectangle(12*scale,12*scale,610*scale,panelHeight,0.015f,0.025f,0.045f,0.91f);
         rectangle(12*scale,12*scale,4*scale,panelHeight,0.1f,0.8f,0.9f,1);
         text(fpsLine.str(),26*scale,25*scale,unit,0.4f,1.f,0.8f);
         text(status,26*scale,25*scale+line,unit,state.alarm?1.f:0.85f,state.alarm?0.45f:0.9f,0.9f);
+        text(capture + " | H: HELP",26*scale,25*scale+2*line,unit,0.85f,0.9f,0.98f);
         if (state.helpVisible) {
-            text("A: ALARM | L: CEILING LIGHT",26*scale,84*scale,unit,0.85f,0.9f,0.98f);
-            text("F: FOG | H: HIDE HELP | ESC: EXIT",26*scale,107*scale,unit,0.85f,0.9f,0.98f);
-        } else {
-            text("H: SHOW HELP",26*scale,25*scale+2*line,unit,0.85f,0.9f,0.98f);
+            const char* controls[] = {"W A S D: WALK | MOUSE: LOOK", "B: ALARM | E: NEARBY DOOR",
+                                      "L: CEILING LIGHT | F: FOG", "R: RESET CAMERA | ESC: EXIT"};
+            for (int i = 0; i < 4; ++i)
+                text(controls[i],26*scale,25*scale+(4+i)*line,unit,0.85f,0.9f,0.98f);
+        }
+        const float promptWidth = min(float(width)-24*scale,
+                                       (state.doorPrompt.size()*12.f+24)*scale);
+        const float promptX = (width-promptWidth)*0.5f;
+        rectangle(promptX,height-48*scale,promptWidth,32*scale,0.015f,0.025f,0.045f,0.91f);
+        text(state.doorPrompt,promptX+12*scale,height-39*scale,unit,0.95f,0.95f,0.8f);
+        if (state.mouseCaptured) {
+            rectangle(width*0.5f-5*scale,height*0.5f-scale,10*scale,2*scale,0.8f,0.95f,1.f,0.85f);
+            rectangle(width*0.5f-scale,height*0.5f-5*scale,2*scale,10*scale,0.8f,0.95f,1.f,0.85f);
         }
         glBufferData(GL_ARRAY_BUFFER,static_cast<GLsizeiptr>(vertices.size()*sizeof(Vertex)),vertices.data(),GL_DYNAMIC_DRAW);
     }

@@ -16,6 +16,9 @@ public:
 
     void toggle();
     void update(float dt);
+    bool isOpen() const { return opened; }
+    float doorAngle() const { return angle; }
+    glm::vec3 doorPosition() const;
 
     void draw(const Mesh& mesh, const Material& metal, const Material& panel,
               Shader& lit, Shader& led,

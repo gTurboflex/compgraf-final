@@ -65,28 +65,36 @@ ctest --test-dir build -C Release --output-on-failure
 .\build\Release\OpenGLApp.exe --smoke-test
 ```
 
-## Controls and FPS (Member 4, UI stage)
+## Controls, camera, and FPS (Member 4)
 
 The scene now shows a help panel, FPS, frame time, and alarm/light/fog status.
 Press **H** to hide or show the help lines. FPS and status stay visible.
 
 | Key | Action |
 | --- | --- |
-| A | Toggle the alarm |
+| W / A / S / D | Walk forward / left / back / right |
+| Mouse | Look around |
+| Tab | Release or capture the mouse |
+| Left click in the window | Capture the mouse again |
+| B | Toggle the alarm |
+| E | Open or close the nearest rack door within 2.3 units |
 | L | Toggle the ceiling lights |
 | F | Toggle fog |
 | H | Show or hide help |
+| R | Reset camera position and direction |
 | Esc | Close the window |
 
-This stage completes the UI and performance half of Member 4's work.
-Walking, mouse look, and nearby-door interaction are still a later stage.
-The current camera is fixed.
+Walking uses elapsed frame time and keeps a fixed eye height. Diagonal movement
+has the same speed as straight movement. Resize updates the projection aspect
+ratio. Changing window focus releases the mouse and clears held keys.
+Collision detection is not included, so the camera can pass through objects.
 
-The scene renders four instances of `src/models/Rack.cpp`, sharing the indexed
+The scene renders four instances of `src/Rack.cpp`, sharing the indexed
 cube mesh. Each rack contains a frame, server units, LED quads, and a hinged
 door frame. Metal and panel materials use the existing textures. The door's
-`toggle()` / `update(dt)` API is available, but keyboard door control is not
-connected yet.
+`toggle()` / `update(dt)` API is connected to E and the frame loop. The bottom
+prompt shows the nearest door and the available action. Alarm is now B because
+A is used for walking. The existing sound effects remain connected.
 
 To measure the scene, run one command at a time. Each run skips two seconds
 and then measures 30 seconds at 1280x720 with VSync off:
@@ -101,7 +109,8 @@ For Ninja builds use `build/OpenGLApp.exe`; on macOS use `./build/OpenGLApp`.
 Do not resize the window or change scene settings during a benchmark.
 Results include the actual OpenGL renderer, mean FPS, p95 frame time, and
 whether the sample finished. Normal use has VSync on.
-See [UI implementation and test results](docs/ui-fps-stage2.md).
+See [camera, controls, and current checks](docs/member4-controls.md).
+The [earlier UI-stage results](docs/ui-fps-stage2.md) describe the old fixed-camera build.
 
 ## Project layout
 

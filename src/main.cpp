@@ -11,6 +11,11 @@
 #include "PerformanceStats.h"
 #include "UI.h"
 #include "Audio.h"
+#include "Camera.h"
+#include "Input.h"
+#include "Interaction.h"
+#include "../tests/input_smoke.h"
+#include "../tests/scene_smoke.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -24,6 +29,7 @@ using namespace glm;
 
 struct RunOptions {
     bool smokeTest = false;
+    bool sceneSmoke = false;
     bool benchmark = false;
     string mode = "normal";
     string output;
@@ -35,12 +41,13 @@ RunOptions readOptions(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         const string arg = argv[i];
         if (arg == "--smoke-test") options.smokeTest = true;
+        else if (arg == "--scene-smoke") { options.smokeTest = true; options.sceneSmoke = true; }
         else if (arg == "--benchmark" && i + 1 < argc) {
             options.benchmark = true;
             options.mode = argv[++i];
         } else if (arg == "--output" && i + 1 < argc) options.output = argv[++i];
         else if (arg == "--capture" && i + 1 < argc) options.capture = argv[++i];
-        else throw runtime_error("Usage: OpenGLApp [--smoke-test] [--benchmark normal|alarm|ceiling-off] [--output result.json] [--capture frame.ppm]");
+        else throw runtime_error("Usage: OpenGLApp [--smoke-test|--scene-smoke] [--benchmark normal|alarm|ceiling-off] [--output result.json] [--capture frame.ppm]");
     }
     if (options.mode != "normal" && options.mode != "alarm" && options.mode != "ceiling-off")
         throw runtime_error("Unknown benchmark mode");
@@ -116,14 +123,13 @@ GLFWwindow* setupOpenGL() {
 #endif
 
     GLFWwindow* window = glfwCreateWindow(
-        1280, 720, "Server Room | A: alarm | L: ceiling | F: fog | H: help | Esc: exit",
+        1280, 720, "Server Room | WASD: walk | B: alarm | E: door | H: help | Esc: exit",
         nullptr, nullptr);
     if (!window) {
         throw runtime_error("Could not create the window.");
     }
 
     glfwMakeContextCurrent(window);
-    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     if (!gladLoadGL(glfwGetProcAddress)) {
         glfwDestroyWindow(window);
         throw runtime_error("Could not initialize GLAD.");
@@ -170,22 +176,17 @@ Mesh setupGeometry() {
     return Mesh(vertices, indices);
 }
 
-void processInput(GLFWwindow* window, Lighting& lighting, bool& fog) {
-    static bool lastA = false, lastL = false, lastF = false;
-    bool a = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    bool l = glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS;
-    bool f = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
-
-    if (a && !lastA) lighting.toggleAlarm();
-    if (l && !lastL) lighting.toggleCeiling();
-    if (f && !lastF) fog = !fog;
-    lastA = a;
-    lastL = l;
-    lastF = f;
-
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, true);
-    }
+void processActions(const InputActions& actions, Lighting& lighting, bool& fog,
+                    bool& help, Audio& audio, vector<Rack>& racks, const Camera& camera) {
+    if (actions.alarm) lighting.toggleAlarm();
+    if (actions.ceiling) lighting.toggleCeiling();
+    if (actions.fog) fog = !fog;
+    if (actions.toggleHelp) help = !help;
+    const int nearby = nearbyRack(racks, camera.position());
+    if (actions.door && nearby >= 0) racks[nearby].toggle();
+    if (actions.alarm || actions.ceiling || actions.fog || actions.toggleHelp ||
+        actions.reset || (actions.door && nearby >= 0)) audio.playClick();
+    audio.setAlarm(lighting.alarm);
 }
 
 void drawObject(const Mesh& mesh, Shader& shader, vec3 position, vec3 scale, bool quad = false) {
@@ -197,14 +198,14 @@ void drawObject(const Mesh& mesh, Shader& shader, vec3 position, vec3 scale, boo
 }
 
 void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, bool fog,
-                 const Mesh& mesh, vector<Rack>& racks, int width, int height) {
+                 const Mesh& mesh, vector<Rack>& racks, const Camera& camera, int width, int height) {
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     float time = float(glfwGetTime());
-    vec3 eye(7, 5, 10);
-    auto view = lookAt(eye, vec3(0, 1, -1), vec3(0, 1, 0));
-    auto projection = perspective(radians(48.f), float(width) / height, 0.1f, 100.f);
+    const auto eye = camera.position();
+    const auto view = camera.view();
+    const auto projection = camera.projection(width, height);
 
     for (Shader* shader : {&shaders.lit, &shaders.led}) {
         shader->use();
@@ -234,24 +235,9 @@ void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, boo
 void updateFPS(GLFWwindow* window, PerformanceStats& stats, double frameTime) {
     if (stats.addFrame(frameTime)) {
         ostringstream title;
-        title << "Server Room | FPS " << fixed << setprecision(1) << stats.fps() << " | " << setprecision(2) << stats.frameMs() << " ms" << " | A: alarm | L: ceiling | F: fog | H: help | Esc: exit";
+        title << "Server Room | FPS " << fixed << setprecision(1) << stats.fps() << " | " << setprecision(2) << stats.frameMs() << " ms" << " | WASD: walk | B: alarm | E: door | H: help | Esc: exit";
         glfwSetWindowTitle(window, title.str().c_str());
     }
-}
-
-struct InputFeedback {
-    bool* help;
-    Audio* audio;
-};
-
-void helpKeyCallback(GLFWwindow* window, int key, int, int action, int) {
-    if (action != GLFW_PRESS) return;
-    auto* feedback = static_cast<InputFeedback*>(glfwGetWindowUserPointer(window));
-    if (!feedback) return;
-    if (key == GLFW_KEY_H) *feedback->help = !*feedback->help;
-    if (key == GLFW_KEY_A || key == GLFW_KEY_L ||
-        key == GLFW_KEY_F || key == GLFW_KEY_H)
-        feedback->audio->playClick();
 }
 
 void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOptions& options) {
@@ -270,22 +256,31 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
     if (options.mode == "ceiling-off") lighting.toggleCeiling();
     Audio audio;
     audio.setAlarm(lighting.alarm);
+    Camera camera;
+    Input input(window, camera);
     bool help = true;
-    InputFeedback feedback{&help, &audio};
     bool captured = false;
-    glfwSetWindowUserPointer(window, &feedback);
-    glfwSetKeyCallback(window, helpKeyCallback);
+    if (options.smokeTest) runInputChecks(window, input, camera);
+    SceneSmoke sceneSmoke(window);
+    const auto key = glfwSetKeyCallback(window, nullptr);
+    glfwSetKeyCallback(window, key);
     bool fog = true;
     int frames = 0;
     int smokeStage = 0;
     double previous = glfwGetTime();
     double started = previous;
+    double movementPrevious = previous;
     int lastWidth = 1280, lastHeight = 720;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        processInput(window, lighting, fog);
-        audio.setAlarm(lighting.alarm);
+        const double frameStart = glfwGetTime();
+        const float dt = static_cast<float>(frameStart - movementPrevious);
+        movementPrevious = frameStart;
+        if (options.sceneSmoke) sceneSmoke.advance(frameStart - started, camera, racks);
+        processActions(input.update(dt), lighting, fog, help, audio, racks, camera);
+        for (auto& rack : racks) rack.update(dt);
+        if (options.sceneSmoke) sceneSmoke.verify(racks, lighting, help, fog, stats.fps());
         if (glfwWindowShouldClose(window)) break;
 
         int width, height;
@@ -293,16 +288,22 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
         if (width <= 0 || height <= 0) {
             glfwWaitEventsTimeout(.1);
             previous = glfwGetTime();
+            movementPrevious = previous;
             continue;
         }
 
-        renderScene(shaders, materials, lighting, fog, mesh, racks, width, height);
+        renderScene(shaders, materials, lighting, fog, mesh, racks, camera, width, height);
         lastWidth = width;
         lastHeight = height;
         UIState hud;
         hud.fps = stats.fps();
         hud.frameMs = stats.frameMs();
         hud.helpVisible = help;
+        hud.mouseCaptured = input.captured();
+        const int nearby = nearbyRack(racks, camera.position());
+        if (nearby >= 0)
+            hud.doorPrompt = "E: " + string(racks[nearby].isOpen() ? "CLOSE" : "OPEN") +
+                             " RACK " + to_string(nearby + 1) + " DOOR";
         hud.alarm = lighting.alarm;
         hud.ceiling = lighting.ceilingEnabled;
         hud.fog = fog;
@@ -322,7 +323,8 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
                 !glIsEnabled(GL_DEPTH_TEST) || glIsEnabled(GL_BLEND) || !depthWrite)
                 throw runtime_error("HUD did not restore scene rendering state");
         }
-        if (!options.capture.empty() && !captured && glfwGetTime() - started >= 1.0) {
+        if (!options.capture.empty() && !captured &&
+            (options.sceneSmoke ? sceneSmoke.done() : glfwGetTime() - started >= 1.0)) {
             captureFrame(options.capture, width, height);
             captured = true;
         }
@@ -334,34 +336,37 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
         previous = now;
         ++frames;
 
-        if (options.smokeTest && now - started >= 2.6) {
+        if (options.sceneSmoke && sceneSmoke.done()) break;
+        if (options.sceneSmoke && now - started > 12.0) throw runtime_error("Scene smoke timed out");
+        if (options.smokeTest && !options.sceneSmoke && now - started >= 2.6) {
             if (stats.fps() <= 0) throw runtime_error("FPS counter did not update");
             if (smokeStage != 2 || !help || width != 1280 || height != 720)
                 throw runtime_error("HUD resize/help smoke check did not finish");
             break;
         }
-        if (options.smokeTest && smokeStage == 0 && now - started >= 0.5) {
-            helpKeyCallback(window, GLFW_KEY_H, 0, GLFW_PRESS, 0);
-            helpKeyCallback(window, GLFW_KEY_H, 0, GLFW_REPEAT, 0);
-            helpKeyCallback(window, GLFW_KEY_H, 0, GLFW_RELEASE, 0);
+        if (options.smokeTest && !options.sceneSmoke && smokeStage == 0 && now - started >= 0.5) {
+            key(window, GLFW_KEY_H, 0, GLFW_PRESS, 0);
+            key(window, GLFW_KEY_H, 0, GLFW_REPEAT, 0);
+            key(window, GLFW_KEY_H, 0, GLFW_RELEASE, 0);
+            processActions(input.update(0.f), lighting, fog, help, audio, racks, camera);
             if (help) throw runtime_error("Help callback did not ignore key repeat/release");
             glfwSetWindowSize(window, 960, 540);
             smokeStage = 1;
-        } else if (options.smokeTest && smokeStage == 1 && now - started >= 1.5) {
+        } else if (options.smokeTest && !options.sceneSmoke && smokeStage == 1 && now - started >= 1.5) {
             if (width != 960 || height != 540) throw runtime_error("Window resize failed");
-            helpKeyCallback(window, GLFW_KEY_H, 0, GLFW_PRESS, 0);
+            key(window, GLFW_KEY_H, 0, GLFW_PRESS, 0);
+            key(window, GLFW_KEY_H, 0, GLFW_RELEASE, 0);
+            processActions(input.update(0.f), lighting, fog, help, audio, racks, camera);
             glfwSetWindowSize(window, 1280, 720);
             smokeStage = 2;
         }
-        if (options.smokeTest && frames <= 4) {
+        if (options.smokeTest && !options.sceneSmoke && frames <= 4) {
             fog = !fog;
             lighting.toggleAlarm();
             lighting.toggleCeiling();
         }
         if (options.benchmark && stats.benchmarkDone()) break;
     }
-    glfwSetKeyCallback(window, nullptr);
-    glfwSetWindowUserPointer(window, nullptr);
     if (options.benchmark) writeBenchmark(options, stats, lastWidth, lastHeight);
 }
 
