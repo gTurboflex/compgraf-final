@@ -25,6 +25,8 @@ add_executable(OpenGLApp
     src/Texture.cpp
     src/PerformanceStats.cpp
     src/UI.cpp
+    src/Camera.cpp
+    src/Input.cpp
 )
 target_link_libraries(OpenGLApp PRIVATE glfw glm::glm glad server_audio)
 target_compile_definitions(OpenGLApp PRIVATE
@@ -35,6 +37,14 @@ target_compile_definitions(OpenGLApp PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(control_tests tests/control_tests.cpp src/Camera.cpp)
+    target_include_directories(control_tests PRIVATE src)
+    target_link_libraries(control_tests PRIVATE glm::glm)
+    add_test(NAME control_tests COMMAND control_tests)
+    add_executable(interaction_tests tests/interaction_tests.cpp src/Rack.cpp src/Mesh.cpp src/Shader.cpp src/Texture.cpp)
+    target_include_directories(interaction_tests PRIVATE src)
+    target_link_libraries(interaction_tests PRIVATE glm::glm glad)
+    add_test(NAME interaction_tests COMMAND interaction_tests)
     add_executable(performance_tests tests/performance_tests.cpp src/PerformanceStats.cpp)
     target_include_directories(performance_tests PRIVATE src)
     add_test(NAME performance_tests COMMAND performance_tests)
