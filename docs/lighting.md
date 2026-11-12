@@ -29,7 +29,7 @@ the dim state retains 6% brightness. Alarm changes their tint to red.
 ## Manual acceptance
 Run the scene: inspect diffuse shading and highlights on scaled rack panels.
 Observe LEDs over several seconds: adjacent LEDs must have different activity.
-Press A: blue room changes to pulsing red; press again to restore blue.
+Press B: blue room changes to pulsing red; press again to restore blue.
 Press L in either mode: direct ceiling illumination disappears and returns.
 Hold either key: it must toggle only once. Resize the window and verify aspect.
 
