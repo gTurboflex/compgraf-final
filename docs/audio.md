@@ -7,7 +7,8 @@ output device's native format. No microphone or network access is used.
 - Ambient: 60 Hz motor hum, its 120 Hz harmonic, a slightly detuned fan component,
   and filtered pseudorandom airflow noise with slow amplitude variation.
 - Button feedback: a 65 ms falling electronic tone with a smooth envelope.
-  GLFW press events trigger A/L/F/H sounds; repeat and release events are ignored.
+  GLFW press events trigger B/L/F/H/R sounds and a tone for a nearby E action;
+  repeat and release events are ignored.
 - Alarm: a continuous 520–1000 Hz sweep with a quiet third harmonic. An atomic
   alarm flag follows Lighting::alarm; a 40 ms envelope smooths switching.
 - Mixing: quiet fixed gains, a startup fade, and an output safety clamp.
@@ -27,7 +28,7 @@ Run build/audio_device_check (Windows: build/Release/audio_device_check.exe)
 for a four-second hardware check: hum, click plus alarm, click plus hum.
 The test fails if a playback device cannot start.
 
-Manual integration: start OpenGLApp, hear the hum, press A twice to start and
+Manual integration: start OpenGLApp, hear the hum, press B twice to start and
 stop the siren, and press L/F/H to hear button tones. Hold H to confirm only one
 tone occurs. Close the application and confirm sound stops. Device failure
 leaves graphics usable with a console warning.
