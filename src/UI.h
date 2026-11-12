@@ -10,9 +10,11 @@ struct UIState {
     double fps = 0;
     double frameMs = 0;
     bool helpVisible = true;
+    bool mouseCaptured = true;
     bool alarm = false;
     bool ceiling = true;
     bool fog = true;
+    string doorPrompt = "MOVE NEAR A RACK DOOR";
 };
 
 class UI {
