@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
 
@@ -16,6 +17,8 @@ void Rack::toggle() {
 }
 
 void Rack::update(float dt) {
+    if (!isfinite(dt) || dt <= 0.f) return;
+    dt = min(dt, 0.1f);
     float speed = 90.0f;
 
     if (opened) {
@@ -23,6 +26,12 @@ void Rack::update(float dt) {
     } else {
         angle = max(angle - speed * dt, 0.0f);
     }
+}
+
+glm::vec3 Rack::doorPosition() const {
+    const auto base = glm::rotate(glm::translate(glm::mat4(1.f), pos),
+                                  glm::radians(rot), glm::vec3(0, 1, 0));
+    return glm::vec3(base * glm::vec4(0.f, 1.5f, 0.82f, 1.f));
 }
 
 void Rack::part(const Mesh& mesh, Shader& sh, const glm::mat4& base,
