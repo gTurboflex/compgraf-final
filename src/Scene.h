@@ -30,4 +30,5 @@ public:
 
 private:
     void drawEquipment(const Mesh& cube, const Materials& materials, Shader& lit);
+    void drawCableTrays(const Mesh& cube, const Materials& materials, Shader& lit);
 };

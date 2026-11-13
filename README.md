@@ -100,6 +100,10 @@ A is used for walking. The existing sound effects remain connected.
 The room also contains two ceiling fixtures, a cooling unit with ventilation
 louvers, a monitor on a stand, and a wall-mounted control panel. These models
 reuse the same cube mesh and the team's textures. The monitor display is static.
+Cable trays run above both rack rows, with rails, crosspieces, ceiling supports
+and three cable runs. A rear tray connects the rows. Together with the existing
+tiled-floor texture, they form the cable-tray/floor stretch feature; fog remains
+controlled by F.
 
 To measure the scene, run one command at a time. Each run skips two seconds
 and then measures 30 seconds at 1280x720 with VSync off:

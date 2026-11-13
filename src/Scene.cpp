@@ -71,6 +71,41 @@ void Scene::drawEquipment(const Mesh& cube, const Materials& materials, Shader& 
         drawBox(cube, lit, {-.93f + .18f * i, 1.32f, -4.63f}, {.10f, .10f, .08f});
 }
 
+void Scene::drawCableTrays(const Mesh& cube, const Materials& materials, Shader& lit) {
+    for (float x : {-2.4f, 2.4f}) {
+        materials.metal.apply(lit);
+        drawBox(cube, lit, {x, 3.23f, -1}, {.5f, .04f, 6});
+        for (float side : {-.25f, .25f}) {
+            drawBox(cube, lit, {x + side, 3.31f, -1}, {.04f, .16f, 6});
+            for (float z : {-3.5f, -1.f, 1.5f})
+                drawBox(cube, lit, {x + side, 3.68f, z}, {.035f, .64f, .035f});
+        }
+        for (int i = 0; i < 12; ++i)
+            drawBox(cube, lit, {x, 3.27f, -3.75f + .5f * i}, {.5f, .04f, .06f});
+
+        // Three simple cable runs rest on the crosspieces.
+        for (int cable = 0; cable < 3; ++cable) {
+            materials.metal.apply(lit);
+            lit.setVec3("albedo", .18f + .14f * cable, .32f, .43f - .10f * cable);
+            drawBox(cube, lit, {x - .13f + .13f * cable, 3.31f, -1.06f - .065f * cable},
+                    {.045f, .045f, 6.12f + .13f * cable});
+        }
+    }
+
+    // Connect the two rows along the back wall.
+    materials.metal.apply(lit);
+    drawBox(cube, lit, {0, 3.23f, -4.25f}, {5.3f, .04f, .5f});
+    drawBox(cube, lit, {0, 3.31f, -4.5f}, {5.3f, .16f, .04f});
+    drawBox(cube, lit, {0, 3.31f, -4.f}, {4.25f, .16f, .04f});
+    for (float x : {-1.5f, 1.5f})
+        drawBox(cube, lit, {x, 3.64f, -4.25f}, {.035f, .72f, .035f});
+    for (int cable = 0; cable < 3; ++cable) {
+        lit.setVec3("albedo", .18f + .14f * cable, .32f, .43f - .10f * cable);
+        drawBox(cube, lit, {-.13f + .13f * cable, 3.31f, -4.12f - .13f * cable},
+                {4.8f, .045f, .045f});
+    }
+}
+
 void Scene::draw(const Mesh& cube, const Materials& materials, Shader& lit, Shader& led,
                  const Lighting& lighting, float time) {
     materials.floor.apply(lit);
@@ -82,6 +117,7 @@ void Scene::draw(const Mesh& cube, const Materials& materials, Shader& lit, Shad
     drawBox(cube, lit, {0, 4.05f, -1}, {10, .1f, 8});
 
     drawEquipment(cube, materials, lit);
+    drawCableTrays(cube, materials, lit);
 
     for (Rack& rack : racks)
         rack.draw(cube, materials.metal, materials.panel, lit, led, lighting, time);
