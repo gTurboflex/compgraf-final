@@ -98,7 +98,7 @@ struct Shaders {
     Shader led;
 };
 
-GLFWwindow* setupOpenGL() {
+GLFWwindow* setupOpenGL(const RunOptions& options) {
     if (!glfwInit()) {
         throw runtime_error("Could not initialize GLFW.");
     }
@@ -106,6 +106,9 @@ GLFWwindow* setupOpenGL() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // Benchmark resolution is in framebuffer pixels, including on Retina.
+    if (options.benchmark || options.smokeTest)
+        glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_FALSE);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -229,7 +232,13 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
     Input input(window, camera);
     bool help = true;
     bool captured = false;
-    if (options.smokeTest) runInputChecks(window, input, camera);
+    if (options.smokeTest) {
+        glfwFocusWindow(window);
+        glfwPollEvents();
+        for (int attempt = 0; attempt < 20 && !glfwGetWindowAttrib(window, GLFW_FOCUSED); ++attempt)
+            glfwWaitEventsTimeout(.05);
+        runInputChecks(window, input, camera);
+    }
     SceneSmoke sceneSmoke(window);
     const auto key = glfwSetKeyCallback(window, nullptr);
     glfwSetKeyCallback(window, key);
@@ -350,7 +359,7 @@ int main(int argc, char** argv) {
 
     try {
         const auto options = readOptions(argc, argv);
-        window = setupOpenGL();
+        window = setupOpenGL(options);
         Shaders shaders = setupShaders();
         Mesh mesh = setupGeometry();
         run(window, shaders, mesh, options);
