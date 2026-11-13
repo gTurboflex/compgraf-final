@@ -89,8 +89,9 @@ has the same speed as straight movement. Resize updates the projection aspect
 ratio. Changing window focus releases the mouse and clears held keys.
 Collision detection is not included, so the camera can pass through objects.
 
-The scene renders four instances of `src/Rack.cpp`, sharing the indexed
-cube mesh. Each rack contains a frame, server units, LED quads, and a hinged
+The scene renders six instances of `src/Rack.cpp` in two rows facing a central
+aisle. `src/Scene.cpp` keeps their state and shares the indexed cube mesh.
+Each rack contains a frame, server units, LED quads, and a hinged
 door frame. Metal and panel materials use the existing textures. The door's
 `toggle()` / `update(dt)` API is connected to E and the frame loop. The bottom
 prompt shows the nearest door and the available action. Alarm is now B because

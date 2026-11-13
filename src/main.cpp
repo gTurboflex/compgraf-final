@@ -8,6 +8,7 @@
 #include "Lighting.h"
 #include "Texture.h"
 #include "Rack.h"
+#include "Scene.h"
 #include "PerformanceStats.h"
 #include "UI.h"
 #include "Audio.h"
@@ -97,18 +98,6 @@ struct Shaders {
     Shader led;
 };
 
-struct Materials {
-    Texture floorTexture{TEXTURE_DIR "/floor.pgm"};
-    Texture metalTexture{TEXTURE_DIR "/metal.pgm"};
-    Texture wallTexture{TEXTURE_DIR "/wall.pgm"};
-    Texture panelTexture{TEXTURE_DIR "/panel.pgm"};
-
-    Material floor{floorTexture, .50f, .56f, .61f, 1.f, 28.f, .18f};
-    Material wall{wallTexture, .62f, .68f, .70f, .6f, 12.f, .08f};
-    Material metal{metalTexture, .25f, .32f, .38f, 1.f, 80.f, .52f};
-    Material panel{panelTexture, .42f, .48f, .53f, 2.f, 44.f, .32f};
-};
-
 GLFWwindow* setupOpenGL() {
     if (!glfwInit()) {
         throw runtime_error("Could not initialize GLFW.");
@@ -189,16 +178,8 @@ void processActions(const InputActions& actions, Lighting& lighting, bool& fog,
     audio.setAlarm(lighting.alarm);
 }
 
-void drawObject(const Mesh& mesh, Shader& shader, vec3 position, vec3 scale, bool quad = false) {
-    shader.use();
-    auto model = glm::scale(translate(mat4(1), position), scale);
-    shader.setMat4("model", value_ptr(model));
-    if (quad) mesh.draw(30, 6);
-    else mesh.draw();
-}
-
 void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, bool fog,
-                 const Mesh& mesh, vector<Rack>& racks, const Camera& camera, int width, int height) {
+                 const Mesh& mesh, Scene& scene, const Camera& camera, int width, int height) {
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -216,16 +197,7 @@ void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, boo
     }
     lighting.apply(shaders.lit, time);
 
-    materials.floor.apply(shaders.lit);
-    drawObject(mesh, shaders.lit, {0, -0.1f, -1}, {10, 0.2f, 8});
-    materials.wall.apply(shaders.lit);
-    drawObject(mesh, shaders.lit, {0, 2, -5}, {10, 4, 0.15f});
-    drawObject(mesh, shaders.lit, {-5, 2, -1}, {0.15f, 4, 8});
-
-    for (Rack& rack : racks) {
-        rack.draw(mesh, materials.metal, materials.panel,
-                  shaders.lit, shaders.led, lighting, time);
-    }
+    scene.draw(mesh, materials, shaders.lit, shaders.led, lighting, time);
 
     if (glGetError() != GL_NO_ERROR) {
         throw runtime_error("OpenGL rendering error");
@@ -242,11 +214,8 @@ void updateFPS(GLFWwindow* window, PerformanceStats& stats, double frameTime) {
 
 void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOptions& options) {
     Materials materials;
-    vector<Rack> racks;
-    for (unsigned id = 0; id < 4; ++id) {
-        racks.emplace_back(vec3(-3.f + id * 2.f, 0.f, -2.f));
-        racks.back().id = id;
-    }
+    Scene scene;
+    auto& racks = scene.racks;
     Lighting lighting;
     PerformanceStats stats;
     UI ui(SHADER_DIR "/ui.vert", SHADER_DIR "/ui.frag");
@@ -279,7 +248,7 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
         movementPrevious = frameStart;
         if (options.sceneSmoke) sceneSmoke.advance(frameStart - started, camera, racks);
         processActions(input.update(dt), lighting, fog, help, audio, racks, camera);
-        for (auto& rack : racks) rack.update(dt);
+        scene.update(dt);
         if (options.sceneSmoke) sceneSmoke.verify(racks, lighting, help, fog, stats.fps());
         if (glfwWindowShouldClose(window)) break;
 
@@ -292,7 +261,7 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
             continue;
         }
 
-        renderScene(shaders, materials, lighting, fog, mesh, racks, camera, width, height);
+        renderScene(shaders, materials, lighting, fog, mesh, scene, camera, width, height);
         lastWidth = width;
         lastHeight = height;
         UIState hud;

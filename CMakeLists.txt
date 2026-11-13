@@ -21,6 +21,7 @@ add_executable(OpenGLApp
     src/main.cpp
     src/Mesh.cpp
     src/Rack.cpp
+    src/Scene.cpp
     src/Shader.cpp
     src/Texture.cpp
     src/PerformanceStats.cpp
@@ -41,8 +42,9 @@ if(BUILD_TESTING)
     target_include_directories(control_tests PRIVATE src)
     target_link_libraries(control_tests PRIVATE glm::glm)
     add_test(NAME control_tests COMMAND control_tests)
-    add_executable(interaction_tests tests/interaction_tests.cpp src/Rack.cpp src/Mesh.cpp src/Shader.cpp src/Texture.cpp)
+    add_executable(interaction_tests tests/interaction_tests.cpp src/Rack.cpp src/Scene.cpp src/Mesh.cpp src/Shader.cpp src/Texture.cpp)
     target_include_directories(interaction_tests PRIVATE src)
+    target_compile_definitions(interaction_tests PRIVATE TEXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/textures")
     target_link_libraries(interaction_tests PRIVATE glm::glm glad)
     add_test(NAME interaction_tests COMMAND interaction_tests)
     add_executable(performance_tests tests/performance_tests.cpp src/PerformanceStats.cpp)
