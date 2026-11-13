@@ -109,6 +109,8 @@ controlled by F.
 triangle winding. Each vertex has a position, normal and UV. The lit shader
 scales face UVs by the model dimensions, so long tray rails and rotated racks
 keep the existing material repeat scale.
+See [scene construction and verified results](docs/scene-layout.md) for the
+hierarchy, lecture references, screenshots and measurements of the expanded room.
 
 To measure the scene, run one command at a time. Each run skips two seconds
 and then measures 30 seconds at 1280x720 with VSync off:
@@ -198,9 +200,9 @@ The report-ready disclosure is in [docs/report/ai-use.md](docs/report/ai-use.md)
 
 ## Server-room audio
 
-A quiet compressor/fan hum starts with the application. A, L, F and H play a
+A quiet compressor/fan hum starts with the application. B, L, F and H play a
 short button tone once per press (holding a key does not repeat it).
-A also starts/stops a sweeping alarm siren, synchronized with alarm lighting.
+B also starts/stops a sweeping alarm siren, synchronized with alarm lighting.
 The hum continues underneath the siren. Sound fades in and the alarm fades out
 to avoid abrupt transitions.
 

@@ -1,0 +1,12 @@
+{
+  "mode": "normal",
+  "width": 1280, "height": 720,
+  "renderer": "Apple A18 Pro",
+  "opengl": "4.1 Metal - 91.7",
+  "vsync": false, "warmup_seconds": 2,
+  "frames": 37684, "seconds": 30.002,
+  "mean_fps": 1256.036,
+  "p95_frame_ms": 1.104,
+  "max_frame_ms": 12.524,
+  "complete": true
+}
