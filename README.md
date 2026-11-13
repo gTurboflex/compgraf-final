@@ -97,6 +97,10 @@ door frame. Metal and panel materials use the existing textures. The door's
 prompt shows the nearest door and the available action. Alarm is now B because
 A is used for walking. The existing sound effects remain connected.
 
+The room also contains two ceiling fixtures, a cooling unit with ventilation
+louvers, a monitor on a stand, and a wall-mounted control panel. These models
+reuse the same cube mesh and the team's textures. The monitor display is static.
+
 To measure the scene, run one command at a time. Each run skips two seconds
 and then measures 30 seconds at 1280x720 with VSync off:
 
