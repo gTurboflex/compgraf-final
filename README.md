@@ -105,6 +105,11 @@ and three cable runs. A rear tray connects the rows. Together with the existing
 tiled-floor texture, they form the cable-tray/floor stretch feature; fog remains
 controlled by F.
 
+`Geometry.cpp` builds 24 cube vertices and 36 indices with outward-facing
+triangle winding. Each vertex has a position, normal and UV. The lit shader
+scales face UVs by the model dimensions, so long tray rails and rotated racks
+keep the existing material repeat scale.
+
 To measure the scene, run one command at a time. Each run skips two seconds
 and then measures 30 seconds at 1280x720 with VSync off:
 

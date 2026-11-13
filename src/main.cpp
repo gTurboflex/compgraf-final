@@ -5,6 +5,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
 #include "Mesh.h"
+#include "Geometry.h"
 #include "Lighting.h"
 #include "Texture.h"
 #include "Rack.h"
@@ -140,32 +141,8 @@ Shaders setupShaders() {
 }
 
 Mesh setupGeometry() {
-    vector<Vertex> vertices;
-    vector<GLuint> indices;
-    const GLuint faceIndices[] = {0, 1, 2, 0, 2, 3};
-    const float corners[][2] = {
-        {-0.5f, -0.5f}, 
-        {0.5f, -0.5f}, 
-        {0.5f, 0.5f}, 
-        {-0.5f, 0.5f}
-    };
-
-    for (int axis = 0; axis < 3; axis++) {
-        for (int sign : {-1, 1}) {
-            const GLuint baseVertex = static_cast<GLuint>(vertices.size());
-            for (int i = 0; i < 4; i++) {
-                vec3 position(0), normal(0);
-                position[axis] = sign * 0.5f;
-                normal[axis] = float(sign);
-                position[(axis + 1) % 3] = corners[i][0];
-                position[(axis + 2) % 3] = corners[i][1];
-                vertices.push_back({position, normal});
-            }
-            for (GLuint index : faceIndices) indices.push_back(baseVertex + index);
-        }
-    }
-
-    return Mesh(vertices, indices);
+    const auto cube = makeCubeGeometry();
+    return Mesh(cube.vertices, cube.indices);
 }
 
 void processActions(const InputActions& actions, Lighting& lighting, bool& fog,

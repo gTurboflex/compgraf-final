@@ -20,6 +20,7 @@ endif()
 add_executable(OpenGLApp
     src/main.cpp
     src/Mesh.cpp
+    src/Geometry.cpp
     src/Rack.cpp
     src/Scene.cpp
     src/Shader.cpp
@@ -38,6 +39,10 @@ target_compile_definitions(OpenGLApp PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(geometry_tests tests/geometry_tests.cpp src/Geometry.cpp)
+    target_include_directories(geometry_tests PRIVATE src)
+    target_link_libraries(geometry_tests PRIVATE glm::glm glad)
+    add_test(NAME geometry_tests COMMAND geometry_tests)
     add_executable(control_tests tests/control_tests.cpp src/Camera.cpp)
     target_include_directories(control_tests PRIVATE src)
     target_link_libraries(control_tests PRIVATE glm::glm)

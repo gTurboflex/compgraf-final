@@ -8,6 +8,7 @@
 struct Vertex {
     glm::vec3 position;
     glm::vec3 normal;
+    glm::vec2 uv;
 };
 
 // Owns indexed triangle geometry. Create and destroy with a current GL context.
