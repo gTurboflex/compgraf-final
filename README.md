@@ -89,12 +89,28 @@ has the same speed as straight movement. Resize updates the projection aspect
 ratio. Changing window focus releases the mouse and clears held keys.
 Collision detection is not included, so the camera can pass through objects.
 
-The scene renders four instances of `src/Rack.cpp`, sharing the indexed
-cube mesh. Each rack contains a frame, server units, LED quads, and a hinged
+The scene renders six instances of `src/Rack.cpp` in two rows facing a central
+aisle. `src/Scene.cpp` keeps their state and shares the indexed cube mesh.
+Each rack contains a frame, server units, LED quads, and a hinged
 door frame. Metal and panel materials use the existing textures. The door's
 `toggle()` / `update(dt)` API is connected to E and the frame loop. The bottom
 prompt shows the nearest door and the available action. Alarm is now B because
 A is used for walking. The existing sound effects remain connected.
+
+The room also contains two ceiling fixtures, a cooling unit with ventilation
+louvers, a monitor on a stand, and a wall-mounted control panel. These models
+reuse the same cube mesh and the team's textures. The monitor display is static.
+Cable trays run above both rack rows, with rails, crosspieces, ceiling supports
+and three cable runs. A rear tray connects the rows. Together with the existing
+tiled-floor texture, they form the cable-tray/floor stretch feature; fog remains
+controlled by F.
+
+`Geometry.cpp` builds 24 cube vertices and 36 indices with outward-facing
+triangle winding. Each vertex has a position, normal and UV. The lit shader
+scales face UVs by the model dimensions, so long tray rails and rotated racks
+keep the existing material repeat scale.
+See [scene construction and verified results](docs/scene-layout.md) for the
+hierarchy, lecture references, screenshots and measurements of the expanded room.
 
 To measure the scene, run one command at a time. Each run skips two seconds
 and then measures 30 seconds at 1280x720 with VSync off:
@@ -184,9 +200,9 @@ The report-ready disclosure is in [docs/report/ai-use.md](docs/report/ai-use.md)
 
 ## Server-room audio
 
-A quiet compressor/fan hum starts with the application. A, L, F and H play a
+A quiet compressor/fan hum starts with the application. B, L, F and H play a
 short button tone once per press (holding a key does not repeat it).
-A also starts/stops a sweeping alarm siren, synchronized with alarm lighting.
+B also starts/stops a sweeping alarm siren, synchronized with alarm lighting.
 The hum continues underneath the siren. Sound fades in and the alarm fades out
 to avoid abrupt transitions.
 

@@ -5,9 +5,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
 #include "Mesh.h"
+#include "Geometry.h"
 #include "Lighting.h"
 #include "Texture.h"
 #include "Rack.h"
+#include "Scene.h"
 #include "PerformanceStats.h"
 #include "UI.h"
 #include "Audio.h"
@@ -97,19 +99,7 @@ struct Shaders {
     Shader led;
 };
 
-struct Materials {
-    Texture floorTexture{TEXTURE_DIR "/floor.pgm"};
-    Texture metalTexture{TEXTURE_DIR "/metal.pgm"};
-    Texture wallTexture{TEXTURE_DIR "/wall.pgm"};
-    Texture panelTexture{TEXTURE_DIR "/panel.pgm"};
-
-    Material floor{floorTexture, .50f, .56f, .61f, 1.f, 28.f, .18f};
-    Material wall{wallTexture, .62f, .68f, .70f, .6f, 12.f, .08f};
-    Material metal{metalTexture, .25f, .32f, .38f, 1.f, 80.f, .52f};
-    Material panel{panelTexture, .42f, .48f, .53f, 2.f, 44.f, .32f};
-};
-
-GLFWwindow* setupOpenGL() {
+GLFWwindow* setupOpenGL(const RunOptions& options) {
     if (!glfwInit()) {
         throw runtime_error("Could not initialize GLFW.");
     }
@@ -117,6 +107,9 @@ GLFWwindow* setupOpenGL() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // Benchmark resolution is in framebuffer pixels, including on Retina.
+    if (options.benchmark || options.smokeTest)
+        glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_FALSE);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -148,32 +141,8 @@ Shaders setupShaders() {
 }
 
 Mesh setupGeometry() {
-    vector<Vertex> vertices;
-    vector<GLuint> indices;
-    const GLuint faceIndices[] = {0, 1, 2, 0, 2, 3};
-    const float corners[][2] = {
-        {-0.5f, -0.5f}, 
-        {0.5f, -0.5f}, 
-        {0.5f, 0.5f}, 
-        {-0.5f, 0.5f}
-    };
-
-    for (int axis = 0; axis < 3; axis++) {
-        for (int sign : {-1, 1}) {
-            const GLuint baseVertex = static_cast<GLuint>(vertices.size());
-            for (int i = 0; i < 4; i++) {
-                vec3 position(0), normal(0);
-                position[axis] = sign * 0.5f;
-                normal[axis] = float(sign);
-                position[(axis + 1) % 3] = corners[i][0];
-                position[(axis + 2) % 3] = corners[i][1];
-                vertices.push_back({position, normal});
-            }
-            for (GLuint index : faceIndices) indices.push_back(baseVertex + index);
-        }
-    }
-
-    return Mesh(vertices, indices);
+    const auto cube = makeCubeGeometry();
+    return Mesh(cube.vertices, cube.indices);
 }
 
 void processActions(const InputActions& actions, Lighting& lighting, bool& fog,
@@ -189,16 +158,8 @@ void processActions(const InputActions& actions, Lighting& lighting, bool& fog,
     audio.setAlarm(lighting.alarm);
 }
 
-void drawObject(const Mesh& mesh, Shader& shader, vec3 position, vec3 scale, bool quad = false) {
-    shader.use();
-    auto model = glm::scale(translate(mat4(1), position), scale);
-    shader.setMat4("model", value_ptr(model));
-    if (quad) mesh.draw(30, 6);
-    else mesh.draw();
-}
-
 void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, bool fog,
-                 const Mesh& mesh, vector<Rack>& racks, const Camera& camera, int width, int height) {
+                 const Mesh& mesh, Scene& scene, const Camera& camera, int width, int height) {
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -216,16 +177,7 @@ void renderScene(Shaders& shaders, Materials& materials, Lighting& lighting, boo
     }
     lighting.apply(shaders.lit, time);
 
-    materials.floor.apply(shaders.lit);
-    drawObject(mesh, shaders.lit, {0, -0.1f, -1}, {10, 0.2f, 8});
-    materials.wall.apply(shaders.lit);
-    drawObject(mesh, shaders.lit, {0, 2, -5}, {10, 4, 0.15f});
-    drawObject(mesh, shaders.lit, {-5, 2, -1}, {0.15f, 4, 8});
-
-    for (Rack& rack : racks) {
-        rack.draw(mesh, materials.metal, materials.panel,
-                  shaders.lit, shaders.led, lighting, time);
-    }
+    scene.draw(mesh, materials, shaders.lit, shaders.led, lighting, time);
 
     if (glGetError() != GL_NO_ERROR) {
         throw runtime_error("OpenGL rendering error");
@@ -242,11 +194,8 @@ void updateFPS(GLFWwindow* window, PerformanceStats& stats, double frameTime) {
 
 void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOptions& options) {
     Materials materials;
-    vector<Rack> racks;
-    for (unsigned id = 0; id < 4; ++id) {
-        racks.emplace_back(vec3(-3.f + id * 2.f, 0.f, -2.f));
-        racks.back().id = id;
-    }
+    Scene scene;
+    auto& racks = scene.racks;
     Lighting lighting;
     PerformanceStats stats;
     UI ui(SHADER_DIR "/ui.vert", SHADER_DIR "/ui.frag");
@@ -260,7 +209,13 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
     Input input(window, camera);
     bool help = true;
     bool captured = false;
-    if (options.smokeTest) runInputChecks(window, input, camera);
+    if (options.smokeTest) {
+        glfwFocusWindow(window);
+        glfwPollEvents();
+        for (int attempt = 0; attempt < 20 && !glfwGetWindowAttrib(window, GLFW_FOCUSED); ++attempt)
+            glfwWaitEventsTimeout(.05);
+        runInputChecks(window, input, camera);
+    }
     SceneSmoke sceneSmoke(window);
     const auto key = glfwSetKeyCallback(window, nullptr);
     glfwSetKeyCallback(window, key);
@@ -279,7 +234,7 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
         movementPrevious = frameStart;
         if (options.sceneSmoke) sceneSmoke.advance(frameStart - started, camera, racks);
         processActions(input.update(dt), lighting, fog, help, audio, racks, camera);
-        for (auto& rack : racks) rack.update(dt);
+        scene.update(dt);
         if (options.sceneSmoke) sceneSmoke.verify(racks, lighting, help, fog, stats.fps());
         if (glfwWindowShouldClose(window)) break;
 
@@ -292,7 +247,7 @@ void run(GLFWwindow* window, Shaders& shaders, const Mesh& mesh, const RunOption
             continue;
         }
 
-        renderScene(shaders, materials, lighting, fog, mesh, racks, camera, width, height);
+        renderScene(shaders, materials, lighting, fog, mesh, scene, camera, width, height);
         lastWidth = width;
         lastHeight = height;
         UIState hud;
@@ -381,7 +336,7 @@ int main(int argc, char** argv) {
 
     try {
         const auto options = readOptions(argc, argv);
-        window = setupOpenGL();
+        window = setupOpenGL(options);
         Shaders shaders = setupShaders();
         Mesh mesh = setupGeometry();
         run(window, shaders, mesh, options);
