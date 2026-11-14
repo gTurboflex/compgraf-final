@@ -128,19 +128,6 @@ Keep new generated output under `build/` rather than adding folders at the root.
 
 ## Current Features:
 
-### Server-room audio
-
-A quiet compressor/fan hum starts with the application. B, L, F and H play a
-short button tone once per press (holding a key does not repeat it).
-B also starts/stops a sweeping alarm siren, synchronized with alarm lighting.
-The hum continues underneath the siren. Sound fades in and the alarm fades out
-to avoid abrupt transitions.
-
-Audio is synthesized at runtime; no sound files or extra system installation
-are needed. miniaudio 0.11.23 is bundled in external/miniaudio with its license.
-If the output device cannot start, the application prints a warning and keeps
-running silently. See [audio details](docs/audio.md).
-
 ### Controls, camera, and FPS
 
 The scene shows a help panel, FPS, frame time, and alarm/light/fog status.
@@ -169,6 +156,19 @@ Press **H** to hide or show the help lines. FPS and status stay visible.
 - Procedural and loaded textures for floor tiles, walls, racks, and server panels
 - Cold-air volumetric fog with toggle support
 - On-screen HUD showing FPS, frame time, alarm/light/fog status, and help panel
+
+### Server-room audio
+
+A quiet compressor/fan hum starts with the application. B, L, F and H play a
+short button tone once per press (holding a key does not repeat it).
+B also starts/stops a sweeping alarm siren, synchronized with alarm lighting.
+The hum continues underneath the siren. Sound fades in and the alarm fades out
+to avoid abrupt transitions.
+
+Audio is synthesized at runtime; no sound files or extra system installation
+are needed. miniaudio 0.11.23 is bundled in external/miniaudio with its license.
+If the output device cannot start, the application prints a warning and keeps
+running silently. See [audio details](docs/audio.md).
 
 ## AI use
 
