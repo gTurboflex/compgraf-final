@@ -1,4 +1,6 @@
 {
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "C_Cpp.default.includePath": ["${workspaceFolder}/include"],
   "cmake.buildBeforeRun": true,
   "cmake.buildDirectory": "${workspaceFolder}/build",
   "cmake.configureOnOpen": true,

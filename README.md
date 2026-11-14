@@ -65,74 +65,12 @@ ctest --test-dir build -C Release --output-on-failure
 .\build\Release\OpenGLApp.exe --smoke-test
 ```
 
-## Controls, camera, and FPS (Member 4)
-
-The scene now shows a help panel, FPS, frame time, and alarm/light/fog status.
-Press **H** to hide or show the help lines. FPS and status stay visible.
-
-| Key | Action |
-| --- | --- |
-| W / A / S / D | Walk forward / left / back / right |
-| Mouse | Look around |
-| Tab | Release or capture the mouse |
-| Left click in the window | Capture the mouse again |
-| B | Toggle the alarm |
-| E | Open or close the nearest rack door within 2.3 units |
-| L | Toggle the ceiling lights |
-| F | Toggle fog |
-| H | Show or hide help |
-| R | Reset camera position and direction |
-| Esc | Close the window |
-
-Walking uses elapsed frame time and keeps a fixed eye height. Diagonal movement
-has the same speed as straight movement. Resize updates the projection aspect
-ratio. Changing window focus releases the mouse and clears held keys.
-Collision detection is not included, so the camera can pass through objects.
-
-The scene renders six instances of `src/Rack.cpp` in two rows facing a central
-aisle. `src/Scene.cpp` keeps their state and shares the indexed cube mesh.
-Each rack contains a frame, server units, LED quads, and a hinged
-door frame. Metal and panel materials use the existing textures. The door's
-`toggle()` / `update(dt)` API is connected to E and the frame loop. The bottom
-prompt shows the nearest door and the available action. Alarm is now B because
-A is used for walking. The existing sound effects remain connected.
-
-The room also contains two ceiling fixtures, a cooling unit with ventilation
-louvers, a monitor on a stand, and a wall-mounted control panel. These models
-reuse the same cube mesh and the team's textures. The monitor display is static.
-Cable trays run above both rack rows, with rails, crosspieces, ceiling supports
-and three cable runs. A rear tray connects the rows. Together with the existing
-tiled-floor texture, they form the cable-tray/floor stretch feature; fog remains
-controlled by F.
-
-`Geometry.cpp` builds 24 cube vertices and 36 indices with outward-facing
-triangle winding. Each vertex has a position, normal and UV. The lit shader
-scales face UVs by the model dimensions, so long tray rails and rotated racks
-keep the existing material repeat scale.
-See [scene construction and verified results](docs/scene-layout.md) for the
-hierarchy, lecture references, screenshots and measurements of the expanded room.
-
-To measure the scene, run one command at a time. Each run skips two seconds
-and then measures 30 seconds at 1280x720 with VSync off:
-
-```powershell
-.\build\Release\OpenGLApp.exe --benchmark normal --output normal.json
-.\build\Release\OpenGLApp.exe --benchmark alarm --output alarm.json
-.\build\Release\OpenGLApp.exe --benchmark ceiling-off --output ceiling-off.json
-```
-
-For Ninja builds use `build/OpenGLApp.exe`; on macOS use `./build/OpenGLApp`.
-Do not resize the window or change scene settings during a benchmark.
-Results include the actual OpenGL renderer, mean FPS, p95 frame time, and
-whether the sample finished. Normal use has VSync on.
-See [camera, controls, and current checks](docs/member4-controls.md).
-The [earlier UI-stage results](docs/ui-fps-stage2.md) describe the old fixed-camera build.
-
 ## Project layout
 
 ```text
 cmake/          Dependency versions, download rules, and the small GLAD adapter
-src/            Application C++ source and headers
+src/            Application C++ source files
+include/        Project headers (smoke-test helpers in include/tests/)
 shaders/        GLSL shader programs
 assets/         Runtime textures
 tests/          Automated tests
@@ -188,17 +126,9 @@ Keep new generated output under `build/` rather than adding folders at the root.
 - Maintain a consistent visual style and record asset sources and licenses in CREDITS.md.
 - Document textures and atmosphere; assemble the report from everyone’s contributions.
 
-## AI use
+## Current Features:
 
-OpenAI Codex assisted with project planning and generated the procedural
-textures credited in CREDITS.md. On 11 November 2026, Codex repaired duplicated
-code from the latest merge and integrated the Rack model with CMake, the
-indexed Mesh renderer, and existing materials. Codex ran the Windows Release
-build, CTest, and OpenGL smoke test, and inspected a framebuffer capture.
-These automated checks do not replace team review or testing on the TA machine.
-The report-ready disclosure is in [docs/report/ai-use.md](docs/report/ai-use.md).
-
-## Server-room audio
+### Server-room audio
 
 A quiet compressor/fan hum starts with the application. B, L, F and H play a
 short button tone once per press (holding a key does not repeat it).
@@ -210,3 +140,42 @@ Audio is synthesized at runtime; no sound files or extra system installation
 are needed. miniaudio 0.11.23 is bundled in external/miniaudio with its license.
 If the output device cannot start, the application prints a warning and keeps
 running silently. See [audio details](docs/audio.md).
+
+### Controls, camera, and FPS
+
+The scene shows a help panel, FPS, frame time, and alarm/light/fog status.
+Press **H** to hide or show the help lines. FPS and status stay visible.
+
+| Key | Action |
+| --- | --- |
+| W / A / S / D | Walk forward / left / back / right |
+| Mouse | Look around |
+| Tab | Release or capture the mouse |
+| Left click in the window | Capture the mouse again |
+| B | Toggle the alarm |
+| E | Open or close the nearest rack door within 2.3 units |
+| L | Toggle the ceiling lights |
+| F | Toggle fog |
+| H | Show or hide help |
+| R | Reset camera position and direction |
+| Esc | Close the window |
+
+### Visuals
+
+- Blinn–Phong lighting with ambient, diffuse, and specular terms
+- Multiple cold-blue ceiling lights with toggle support
+- Emissive server LEDs with randomized independent blink timing
+- Overheat alarm mode with flashing-red lighting
+- Procedural and loaded textures for floor tiles, walls, racks, and server panels
+- Cold-air volumetric fog with toggle support
+- On-screen HUD showing FPS, frame time, alarm/light/fog status, and help panel
+
+## AI use
+
+OpenAI Codex assisted with project planning and generated the procedural
+textures credited in CREDITS.md. On 11 November 2026, Codex repaired duplicated
+code from the latest merge and integrated the Rack model with CMake, the
+indexed Mesh renderer, and existing materials. Codex ran the Windows Release
+build, CTest, and OpenGL smoke test, and inspected a framebuffer capture.
+These automated checks do not replace team review or testing on the TA machine.
+The report-ready disclosure is in [docs/report/ai-use.md](docs/report/ai-use.md).

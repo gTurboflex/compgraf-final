@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../src/Input.h"
+#include "Input.h"
 #include <cmath>
 #include <stdexcept>
 

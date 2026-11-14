@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../src/Camera.h"
-#include "../src/Lighting.h"
-#include "../src/Interaction.h"
+#include "Camera.h"
+#include "Lighting.h"
+#include "Interaction.h"
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <stdexcept>

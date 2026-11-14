@@ -16,8 +16,8 @@
 #include "Camera.h"
 #include "Input.h"
 #include "Interaction.h"
-#include "../tests/input_smoke.h"
-#include "../tests/scene_smoke.h"
+#include "tests/input_smoke.h"
+#include "tests/scene_smoke.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
