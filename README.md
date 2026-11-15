@@ -246,14 +246,8 @@ See [CREDITS.md](CREDITS.md) for dependencies, licenses and asset origins.
 
 ## AI use
 
-OpenAI Codex assisted with project planning and generated the procedural
-textures credited in CREDITS.md. On 11 November 2026, Codex repaired duplicated
-code from the latest merge and integrated the Rack model with CMake, the
-indexed Mesh renderer, and existing materials. Codex ran the Windows Release
-build, CTest, and OpenGL smoke test, and inspected a framebuffer capture.
-These automated checks do not replace team review or testing on the TA machine.
-On 13–14 November, assistance also covered the expanded room and cable trays,
-UV and triangle-winding corrections, verification, and documentation updates.
+AI Assistants aided with project planning, library stacking problems between our team,
+and generated the procedural textures credited in CREDITS.md.
 
 ## Server-room audio
 
