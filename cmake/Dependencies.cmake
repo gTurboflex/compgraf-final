@@ -5,8 +5,6 @@ if(POLICY CMP0168)
     cmake_policy(SET CMP0168 NEW)
 endif()
 
-# Always use the same sources on every machine, including GLAD from GLFW's
-# archive. FetchContent keeps downloads and dependency builds in build/_deps.
 set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE NEVER)
 set(GLFW_BUILD_EXAMPLES OFF)
 set(GLFW_BUILD_TESTS OFF)
@@ -27,8 +25,5 @@ FetchContent_Declare(glm
 )
 FetchContent_MakeAvailable(glfw glm)
 
-# GLFW ships a generated GLAD 2 OpenGL 3.3 loader for its examples. Its
-# single header embeds the Khronos platform definitions, so neither Python
-# nor separately installed GLAD/KHR headers are needed. Compile it once.
 add_library(glad STATIC "${CMAKE_CURRENT_LIST_DIR}/glad.c")
 target_include_directories(glad SYSTEM PUBLIC "${glfw_SOURCE_DIR}/deps")

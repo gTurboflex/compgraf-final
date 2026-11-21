@@ -31,7 +31,6 @@ struct Audio::Impl {
         if (!started) cerr << "Audio unavailable; continuing without sound.\n";
     }
     ~Impl() {
-        // Uninitialization waits for the callback before destroying its state.
         if (initialized) ma_device_uninit(&device);
     }
 };

@@ -11,7 +11,6 @@ void main() {
     worldPosition = p.xyz;
     vec3 size = vec3(length(model[0].xyz), length(model[1].xyz), length(model[2].xyz));
     vec2 faceSize = abs(normal.x) > 0.5 ? size.zy : abs(normal.y) > 0.5 ? size.xz : size.xy;
-    // Keep the existing texture scale when a box is stretched or rotated.
     uv = (texCoord - vec2(0.5)) * faceSize * repeatPerUnit;
     worldNormal = transpose(inverse(mat3(model))) * normal;
     gl_Position = projection * view * p;

@@ -29,7 +29,6 @@ void Scene::update(float dt) {
 }
 
 void Scene::drawEquipment(const Mesh& cube, const Materials& materials, Shader& lit) {
-    // These fixtures sit above the two light positions in lit.frag.
     for (float x : {-2.f, 2.f}) {
         materials.metal.apply(lit);
         drawBox(cube, lit, {x, 3.9f, -1}, {1.4f, .12f, .65f});
@@ -39,7 +38,6 @@ void Scene::drawEquipment(const Mesh& cube, const Materials& materials, Shader& 
         drawBox(cube, lit, {x, 3.565f, -1}, {1.12f, .03f, .40f});
     }
 
-    // Floor-standing cooling unit, with a recessed dark vent and louvers.
     materials.equipment.apply(lit);
     drawBox(cube, lit, {-4.1f, 1.15f, -4.15f}, {1.2f, 2.3f, 1.f});
     materials.metal.apply(lit);
@@ -50,7 +48,6 @@ void Scene::drawEquipment(const Mesh& cube, const Materials& materials, Shader& 
     materials.screen.apply(lit);
     drawBox(cube, lit, {-4.1f, 2.08f, -3.63f}, {.42f, .14f, .05f});
 
-    // Static monitor and its stand.
     materials.metal.apply(lit);
     drawBox(cube, lit, {1.05f, .06f, -4.35f}, {.7f, .12f, .55f});
     drawBox(cube, lit, {1.05f, .77f, -4.35f}, {.12f, 1.42f, .12f});
@@ -61,7 +58,6 @@ void Scene::drawEquipment(const Mesh& cube, const Materials& materials, Shader& 
     for (int i = 0; i < 3; ++i)
         drawBox(cube, lit, {.92f, 1.88f - .16f * i, -4.232f}, {.53f, .035f, .01f});
 
-    // Separate wall-mounted control panel, with display and three buttons.
     materials.equipment.apply(lit);
     drawBox(cube, lit, {-.75f, 1.55f, -4.79f}, {.65f, .9f, .25f});
     materials.screen.apply(lit);
@@ -83,7 +79,6 @@ void Scene::drawCableTrays(const Mesh& cube, const Materials& materials, Shader&
         for (int i = 0; i < 12; ++i)
             drawBox(cube, lit, {x, 3.27f, -3.75f + .5f * i}, {.5f, .04f, .06f});
 
-        // Three simple cable runs rest on the crosspieces.
         for (int cable = 0; cable < 3; ++cable) {
             materials.metal.apply(lit);
             lit.setVec3("albedo", .18f + .14f * cable, .32f, .43f - .10f * cable);
@@ -92,7 +87,6 @@ void Scene::drawCableTrays(const Mesh& cube, const Materials& materials, Shader&
         }
     }
 
-    // Connect the two rows along the back wall.
     materials.metal.apply(lit);
     drawBox(cube, lit, {0, 3.23f, -4.25f}, {5.3f, .04f, .5f});
     drawBox(cube, lit, {0, 3.31f, -4.5f}, {5.3f, .16f, .04f});

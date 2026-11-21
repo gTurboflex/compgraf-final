@@ -107,7 +107,6 @@ GLFWwindow* setupOpenGL(const RunOptions& options) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // Benchmark resolution is in framebuffer pixels, including on Retina.
     if (options.benchmark || options.smokeTest)
         glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_FALSE);
 

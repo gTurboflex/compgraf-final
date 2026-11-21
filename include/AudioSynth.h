@@ -4,7 +4,6 @@
 
 using namespace std;
 
-// Audio-thread-only oscillator state; no allocations or device dependencies.
 class AudioSynth {
 public:
     void render(float* stereo, size_t frames, bool alarm, bool click);

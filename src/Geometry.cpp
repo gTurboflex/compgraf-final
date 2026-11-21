@@ -7,8 +7,6 @@ Geometry makeCubeGeometry() {
     const GLuint faceIndices[] = {0, 1, 2, 0, 2, 3};
     const float corners[][2] = {{-.5f, -.5f}, {.5f, -.5f}, {.5f, .5f}, {-.5f, .5f}};
 
-    // Four vertices per face keep sharp normals and separate texture edges.
-    // Face order stays -X, +X, -Y, +Y, -Z, +Z; LEDs use the last six indices.
     for (int axis = 0; axis < 3; ++axis) {
         for (int sign : {-1, 1}) {
             const GLuint base = static_cast<GLuint>(cube.vertices.size());

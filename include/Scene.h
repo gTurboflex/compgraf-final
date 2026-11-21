@@ -25,7 +25,6 @@ public:
     void draw(const Mesh& cube, const Materials& materials, Shader& lit, Shader& led,
               const Lighting& lighting, float time);
 
-    // Input and the HUD use the same racks that are updated and drawn.
     std::vector<Rack> racks;
 
 private:

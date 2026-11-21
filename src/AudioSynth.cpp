@@ -26,7 +26,6 @@ void AudioSynth::render(float* stereo, size_t frames, bool alarm, bool click) {
                     .018f * float(sin(2 * motorPhase)) +
                     .013f * float(sin(fanPhase)) + .09f * fanNoise;
         hum *= float(.94 + .06 * sin(modulation));
-        // Continuous phase and a 40 ms envelope prevent pops on alarm toggles.
         advancePhase(sirenPhase, 760 + 240 * sin(modulation));
         alarmGain += ((alarm ? 1.f : 0.f) - alarmGain) * (1.f / 1920.f);
         float siren = alarmGain * .15f *
